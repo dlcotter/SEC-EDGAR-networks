@@ -1,7 +1,0 @@
-SECWordCount.class
-Stemmer.class
-SECWordCount$Map.class
-ParseSECData.class
-WholeFileInputFormat.class
-WholeFileRecordReader.class
-SECWordCount$Reduce.class
