@@ -1,0 +1,8 @@
+*.class
+*.jar
+code/target/
+code/input/
+code/output/
+*~
+*#
+.#*
