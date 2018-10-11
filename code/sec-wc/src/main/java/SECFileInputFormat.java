@@ -19,11 +19,10 @@ public class SECFileInputFormat
 	return false;
     }
 
-    @Override
     /** 
      * Generate the requested number of file splits, with the filename
      * set to the filename of the output file.
-     */
+      @Override
     public List<InputSplit> getSplits(JobContext job) throws IOException {
       List<InputSplit> result = new ArrayList<InputSplit>();
       Path outDir = FileOutputFormat.getOutputPath(job);
@@ -35,14 +34,15 @@ public class SECFileInputFormat
       }
       return result;
     }
+     */
  
   @Override
   public RecordReader<Text, Text> createRecordReader(
       InputSplit split, TaskAttemptContext context) throws IOException,
       InterruptedException {
-    SECFileRecordReader reader = new SECFileRecordReader();
-    reader.initialize(split, context);
-    return reader;
+      SECFileRecordReader reader = new SECFileRecordReader();
+      reader.initialize(split, context);
+      return reader;
   }
 }
 
