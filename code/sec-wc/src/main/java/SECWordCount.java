@@ -27,7 +27,7 @@ public class SECWordCount extends Configured implements Tool {
     public int run(String[] args) throws Exception {
 	Job job = Job.getInstance(getConf(), "secwordcount");
 	job.setJarByClass(this.getClass());
-	job.setInputFormatClass(WholeFileInputFormat.class);
+	job.setInputFormatClass(SECFileInputFormat.class);
 	// Use TextInputFormat, the default unless job.setInputFormatClass is used
 	FileInputFormat.addInputPath(job, new Path(args[0]));
 	FileOutputFormat.setOutputPath(job, new Path(args[1]));
@@ -38,13 +38,14 @@ public class SECWordCount extends Configured implements Tool {
 	return job.waitForCompletion(true) ? 0 : 1;
     }
 
-    public static class Map extends Mapper<NullWritable, Text, Text, IntWritable> {
+    public static class Map extends Mapper<Text, Text, Text, IntWritable> {
 	private final static IntWritable one = new IntWritable(1);
 	private Text word = new Text();
-	public void map(NullWritable offset, Text fileData, Context context)
+	public void map(Text key, Text fileData, Context context)
 	    throws IOException, InterruptedException {
 	    String content = fileData.toString();
-	    System.out.println( "Map.map: content length = "+Long.toString(content.length()));
+	    String keyval  = key.toString();
+	    System.out.println( "Map.map: key = "+keyval+"  content length = "+Long.toString(content.length()));
 	    StringBufferInputStream inStream = new StringBufferInputStream( content );
 	    ParseSECData parser = new ParseSECData( inStream );
 	    Text currentWord = new Text();
