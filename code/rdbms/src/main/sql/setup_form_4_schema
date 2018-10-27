@@ -1,0 +1,77 @@
+--Psuedo-SQL TM: close enough to valid syntax to fix up easily but almost certainly not quite right
+--I have written far more queries than DDL statements, so I usually have to look up DDL stuff
+
+create table cik (
+    cik bigint primary key
+);
+
+create table name (
+    cik bigint not null,
+    reportdate int not null,
+    trading_symbol nvarchar,
+    entity_name varchar,    
+    constraint pk_name primary key (cik,reportdate)
+);
+
+create table owner_rel (
+    company_cik bigint not null,
+    owner_cik bigint not null,
+    is_director bit not null,
+    is_officer bit not null,
+    is_10_pct_owner bit not null,
+    is_other bit not null,
+    officer_title varchar
+);    
+
+create table address (
+    cik bigint not null,
+    reportdate int not null,
+    street1 nvarchar not null,
+    street2 nvarchar,
+    city nvarchar,
+    state nvarchar(2),
+    zip nvarchar
+    state_description varchar,
+    constraint pk_address primary key (cik,reportdate)
+);
+
+create table filing(
+    accession_number nvarchar not null,
+    reportdate int not null,--deliberate denormalization,repeated in subsequent tables for partitioning.
+        
+    constraint pk_filing primary key (accesion_number) include (reportdate)
+);
+
+create table footnotes(
+    accession_number varchar not null,
+    reportdate int not null,
+    footnoteid int not null,
+    value nvarchar,
+    constraint pk_footnotes primary key (accession_number,footnoteid)
+);
+
+create table trans_holdings(
+    accession_number varchar not null,
+    reportdate int not null,
+    tran_or_holding bit,
+    deriv_or_non bit,
+    security_id bigint not null,
+    underlying_security_id bigint,
+    tran_holding_id bigint
+);
+
+--almost every field in the transaction/holdings tables can include a ref to a footnoteid
+--gives us only as much schema as we need. If there's a value, great, if not, no prob. Footnote and value? Fine. Something unexpected? Fine too, just convert to nvarchar and stick it in there to sort out later
+create table tran_holding_props(
+    tran_holding_id bigint,
+    prop_name varchar,
+    prop_value varchar
+);
+    
+    
+);
+create table security(
+    security_id bigint not null,
+    security_title varchar not null,
+    reportdate int not null,   
+);    
