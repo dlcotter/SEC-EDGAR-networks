@@ -30,6 +30,8 @@ CREATE TABLE contacts (
     PRIMARY KEY (cik,filing_date,contact_type)
 );
 
+CREATE UNIQUE INDEX contacts_cik_idx ON contacts (cik);
+
 CREATE TABLE filings (
     accession_number text,
     submission_type  text,
@@ -51,6 +53,8 @@ CREATE TABLE owner_rels (
     PRIMARY KEY (issuer_cik,owner_cik,filing_date)
 );    
 
+CREATE UNIQUE INDEX owner_rels_issuer_cik_idx ON owner_rels (issuer_cik);
+CREATE UNIQUE INDEX owner_rels_owner_cik_idx  ON owner_rels (owner_cik);
 
 CREATE TABLE documents (
     filing          text REFERENCES filings (accession_number) NOT NULL,
@@ -60,3 +64,12 @@ CREATE TABLE documents (
     format          type_of_format,
     PRIMARY KEY (filing,sequence)
 );
+
+CREATE TABLE filings_entities (
+    filing          text REFERENCES filings (accession_number) NOT NULL,
+    entity          text REFERENCES entities (cik) NOT NULL,
+    PRIMARY kEY (filing,entity)
+);
+
+CREATE UNIQUE INDEX filings_entities_filing_idx ON filings_entities (filing);
+CREATE UNIQUE INDEX filings_entities_entity_idx ON filings_entities (entity);
