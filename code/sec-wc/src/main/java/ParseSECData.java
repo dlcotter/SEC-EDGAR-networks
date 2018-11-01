@@ -1,19 +1,7 @@
 import java.io.*;
-// <DOCUMENT>
-// <TYPE>EXCEL
-// <TYPE>GRAPHIC
-// <TYPE>ZIP
-
-// 3540872 3540872 16614427
-//
-// real	0m11.065s
-// user	0m8.834s
-// sys	0m11.391s
-
-// import Stemmer;
 
 
-class ParseSECData {
+public class ParseSECData {
 
     private static int inputBufferSize = 65536;
     private static int maxWordSize     =  1024;

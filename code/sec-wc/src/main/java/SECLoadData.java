@@ -2,6 +2,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringBufferInputStream;
 import java.util.*;
+import javax.xml.parsers.SAXParser;
+import javax.xml.parsers.SAXParserFactory;
+import org.xml.sax.helpers.DefaultHandler;
 
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.conf.*;
@@ -15,17 +18,21 @@ import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.log4j.Logger;
 
-public class SECLoadData extends Configured implements Tool {
+public class SECLoadData extends Configured implements Tool  {
 
-    private static final Logger LOG = Logger.getLogger(SECLoadData.class);
+    private static final Logger           LOG       = Logger.getLogger(SECLoadData.class);
+    private static final SAXParserFactory saxParserFactory = SAXParserFactory.newInstance();
 
+    private static SAXParser saxParser;
+    
     public static void main(String[] args) throws Exception {
+	//	saxParser = saxParserFactory.newInstance();
 	int res = ToolRunner.run(new SECLoadData(), args);
 	System.exit(res);
     }
 
     public int run(String[] args) throws Exception {
-	Job job = Job.getInstance(getConf(), "secwordcount");
+	Job job = Job.getInstance(getConf(), "secloaddata");
 	job.setJarByClass(this.getClass());
 	job.setInputFormatClass(SECFileInputFormat.class);
 	// Use TextInputFormat, the default unless job.setInputFormatClass is used
@@ -38,21 +45,25 @@ public class SECLoadData extends Configured implements Tool {
 	return job.waitForCompletion(true) ? 0 : 1;
     }
 
-    public static class Map extends Mapper<NullWritable, Text, Text, IntWritable> {
+    public static class Map extends Mapper<Text, Text, Text, IntWritable> {
 	private final static IntWritable one = new IntWritable(1);
 	private Text word = new Text();
-	public void map(NullWritable offset, Text fileData, Context context)
+	public void map(Text key, Text fileData, Context context)
 	    throws IOException, InterruptedException {
 	    String content = fileData.toString();
-	    System.out.println( "Map.map: content length = "+Long.toString(content.length()));
+	    String keyVal     = key.toString();
+	    //	    SAXParser xmlParser = 
+	    System.out.println( "Map.map: key = "+keyVal+"  content length = "+Long.toString(content.length()));
 	    StringBufferInputStream inStream = new StringBufferInputStream( content );
 	    ParseSECData parser = new ParseSECData( inStream );
 	    Text currentWord = new Text();
+	    /*
 	    for (String word = parser.nextWord(); word != null; word = parser.nextWord()) {
 		currentWord = new Text(word);
 		//System.out.println( "Word:  "+word );
 		context.write(currentWord,one);
-	    }
+		}
+	    */
 	}
     }
 
