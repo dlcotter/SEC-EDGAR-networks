@@ -23,6 +23,9 @@ public class SECObjectFiling extends SECObject {
 				       "documentCount",
 				       "filingDate",
 				       "changeDate" };
+
+    static final Date badDate = new Date(0,0,1);
+	
 	
     
     private String accessionNumber;
@@ -44,8 +47,8 @@ public class SECObjectFiling extends SECObject {
 	changeDate      = chngDate;
     }
 	
-    public SECObjectType getType() {
-	return SECObjectType.FILING;
+    public SECObjectEnum getType() {
+	return SECObjectEnum.FILING;
     }
 
 
@@ -53,10 +56,10 @@ public class SECObjectFiling extends SECObject {
 	HashMap<String,String> filingValues = new HashMap<String,String>();
 
 	for ( int i = 0; i < filingStrings.length; i++ ) {
-	    System.out.println("getHeaderHashMap: looking for: "+filingStrings[i] );
+	    // System.out.println("getHeaderHashMap: looking for: "+filingStrings[i] );
 	    int loc1 = content.indexOf( filingStrings[i], startLoc);
 	    if ( loc1 >= 0 ) {
-		System.out.println("getHeaderHashMap: found it at: "+Integer.toString(loc1));
+		// System.out.println("getHeaderHashMap: found it at: "+Integer.toString(loc1));
 		loc1 += filingStrings[i].length();
 		char c = content.charAt(loc1);
 		while (Character.isSpace(c)) {
@@ -72,7 +75,7 @@ public class SECObjectFiling extends SECObject {
 		    String value = content.substring(loc1,loc2);
 		    filingValues.put( filingKeys[i], 
 				      content.substring(loc1,loc2));
-		    System.out.println( "getHeaderHashMap: value="+value);
+		    // System.out.println( "getHeaderHashMap: value="+value);
 		}
 	    }
 	}
@@ -86,14 +89,25 @@ public class SECObjectFiling extends SECObject {
     public String toCSV() {
 	SimpleDateFormat sdf0 = new SimpleDateFormat("YYYY-MM-dd");
 	SimpleDateFormat sdf1 = new SimpleDateFormat("YYYY-MM-dd");
-	String date0 = sdf0.format(filingDate);
-	String date1 = sdf1.format(changeDate);
+	String date0 = null;
+	String date1 = null;
+	try {
+	    date0 = sdf0.format(filingDate);
+	} catch (Exception e) {
+	    date0 = sdf0.format(badDate);
+	}
+	try {
+	    date1 = sdf1.format(changeDate); 
+	} catch (Exception e) {
+	    date1 = sdf0.format(badDate);
+	}
+
 	String csvLine =    accessionNumber+
                         ","+submissionType+
 	                ","+documentCount+
                         ","+date0+
                         ","+date1;
-	System.out.println( "toCSV: "+csvLine );
+	// System.out.println( "toCSV: "+csvLine );
 	return csvLine;
     }
 
@@ -101,16 +115,16 @@ public class SECObjectFiling extends SECObject {
      * Return an Array of SECObjects when parsing a component
      */
     public static SECObject[] parse( String content, int startLoc, int endLoc ) {
-	SECObject[] objects = new SECObject[1];
-	SimpleDateFormat sdf = new SimpleDateFormat("YYYYMMdd");
+	SECObject[]      objects = new SECObject[1];
+	SimpleDateFormat sdf     = new SimpleDateFormat("YYYYMMdd");
 	
-	System.out.println( "parse:  content="+content);
+	// // System.out.println( "parse:  content="+content);
 
 	int headerStart = content.indexOf( "<SEC-HEADER>" );
 	int headerEnd   = content.indexOf( "</SEC-HEADER>" );
 
-	System.out.println( "parse:  headerStart="+headerStart );
-	System.out.println( "parse:  headerEnd=  "+headerEnd );
+	// System.out.println( "parse:  headerStart="+headerStart );
+	// System.out.println( "parse:  headerEnd=  "+headerEnd );
 	if ( headerStart >= startLoc && headerEnd <= endLoc ) {
 	    String accession_number= "";
 	    String submission_type = "";
@@ -133,8 +147,8 @@ public class SECObjectFiling extends SECObject {
 			int month = Integer.parseInt(mn);
 			int day   = Integer.parseInt(dy);
 			filing_date       = new Date(year-1900, month-1, day );
-			System.out.println( "filing-date:  "+Integer.toString(year)
-					    +"-"+Integer.toString(month)+"-"+Integer.toString(day) );
+			// System.out.println( "filing-date:  "+Integer.toString(year)
+			//		    +"-"+Integer.toString(month)+"-"+Integer.toString(day) );
 		    } break;
 		    case 4: {
 			String yr = value.substring(0,4);
@@ -144,12 +158,10 @@ public class SECObjectFiling extends SECObject {
 			int month = Integer.parseInt(mn);
 			int day   = Integer.parseInt(dy);
 			change_date       = new Date(year-1900, month-1, day );
-			System.out.println( "change-date:  "+yr+"-"+mn+"-"+dy );
+			// System.out.println( "change-date:  "+yr+"-"+mn+"-"+dy );
 		    } break;
 		    }
-		    System.out.println("parse: key: "+filingKeys[i]+"  value: "+value);
-		} else {
-		    System.out.println("parse: key: "+filingKeys[i]+"  value: null");
+		    // System.out.println("parse: key: "+filingKeys[i]+"  value: "+value);
 		}
 	    }
 	    SECObjectFiling filing = new SECObjectFiling( accession_number,

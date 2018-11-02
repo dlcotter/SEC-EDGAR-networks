@@ -11,7 +11,7 @@
   <artifactId>sec-wc</artifactId>
   <packaging>jar</packaging>
   <version>0.0.1</version>
-  <name>SEC Word Count</name>
+  <name>SEC Analyze</name>
   <dependencies>
     <dependency>
       <groupId>junit</groupId>
