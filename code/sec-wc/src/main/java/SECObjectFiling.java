@@ -11,7 +11,6 @@ import java.text.ParsePosition;
 import java.text.SimpleDateFormat;
 
 public class SECObjectFiling extends SECObject {
-    SECObjectType objectType;
 
     static final String[] filingStrings = { "ACCESSION NUMBER:",
 					    "CONFORMED SUBMISSION TYPE:",
@@ -26,8 +25,6 @@ public class SECObjectFiling extends SECObject {
 
     static final Date badDate = new Date(0,0,1);
 	
-	
-    
     private String accessionNumber;
     private String submissionType;
     private int    documentCount;
@@ -40,6 +37,7 @@ public class SECObjectFiling extends SECObject {
 			    int    docCount,
 			    Date   filngDate,
 			    Date   chngDate ) {
+	objectType      = SECObjectType.FILING;
 	accessionNumber = accNum;
 	submissionType  = subType;
 	documentCount   = docCount;
@@ -47,11 +45,6 @@ public class SECObjectFiling extends SECObject {
 	changeDate      = chngDate;
     }
 	
-    public SECObjectEnum getType() {
-	return SECObjectEnum.FILING;
-    }
-
-
     private static HashMap<String,String> getHeaderHashMap( String content, int startLoc, int endLoc ) {
 	HashMap<String,String> filingValues = new HashMap<String,String>();
 
@@ -99,7 +92,7 @@ public class SECObjectFiling extends SECObject {
 	try {
 	    date1 = sdf1.format(changeDate); 
 	} catch (Exception e) {
-	    date1 = sdf0.format(badDate);
+	    date1 = date0;
 	}
 
 	String csvLine =    accessionNumber+

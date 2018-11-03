@@ -57,24 +57,10 @@ public class SECLoadData extends Configured implements Tool  {
 	    SECObject[] secObjects = SECObjectFiling.parse( content, 0, content.length());
 	    if ( secObjects != null ) {
 		for ( int i = 0; i < secObjects.length; i++ ) {
-		    SECObject item      = secObjects[i];
-		    int       itemType  = SECObjectType.to_int( item.getType());
-		    String    tableName = null;
-		    String    csv_line  = item.toCSV();
-
-		    switch (itemType) {
-		    case 0:    tableName="missing";    break;
-		    case 1:    tableName="contacts";   break;
-		    case 2:    tableName="documents";  break;
-		    case 3:    tableName="entities";   break;
-		    case 4:    tableName="filings";    break;
-		    case 5:    tableName="form10ks";   break;
-		    case 6:    tableName="form4s";     break;
-		    case 7:    tableName="form8ks";    break;
-		    case 8:    tableName="headers";    break;
-		    case 9:    tableName="owner_rels"; break;
-		    default:   tableName="missing";    break;
-		    }
+		    SECObject     item      = secObjects[i];
+		    SECObjectType itemType  = item.getType();
+		    String        tableName = itemType.to_string();
+		    String        csv_line  = item.toCSV();
 		
 		    context.write(new Text(tableName),new Text(csv_line));
 		}

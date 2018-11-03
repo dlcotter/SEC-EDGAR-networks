@@ -107,7 +107,7 @@ class SECFileRecordReader extends RecordReader<IntWritable, Text> {
 		}
 		if ( endLoc != 0 ) {
 		    state = 1;
-		    nextKey   = new IntWritable( SECObjectType.to_int( SECObjectEnum.HEADER ));
+		    nextKey   = new IntWritable( SECObjectType.HEADER.to_int( ));
 		    nextValue = new Text( contents.substring( startLoc, endLoc ));
 		    startLoc = endLoc;
 		}
@@ -119,7 +119,7 @@ class SECFileRecordReader extends RecordReader<IntWritable, Text> {
 		    offset = contents.indexOf(documentETag,offset);
 		    if ( offset != -1 ) {
 			endLoc = offset;
-			nextKey   = new IntWritable( SECObjectType.to_int( SECObjectEnum.DOCUMENT ));
+			nextKey   = new IntWritable( SECObjectType.DOCUMENT.to_int());
 			nextValue = new Text( contents.substring( startLoc, endLoc ));
 			startLoc = endLoc;
 		    }

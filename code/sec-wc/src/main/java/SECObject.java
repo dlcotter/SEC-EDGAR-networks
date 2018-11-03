@@ -4,10 +4,10 @@
  */
 
 public abstract class SECObject {
-    SECObjectEnum objectType;
+    SECObjectType objectType;
 
 
-    public SECObjectEnum getType() {
+    public SECObjectType getType() {
 	return objectType;
     }
 

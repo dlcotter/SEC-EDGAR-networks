@@ -1,5 +1,5 @@
 
-import junit.framework.Assert;
+import static org.junit.Assert.assertEquals;
 import org.junit.Test;
 
 public class TestSECObjectFiling {
@@ -21,6 +21,6 @@ public class TestSECObjectFiling {
 	SECObject[] filingData = SECObjectFiling.parse(testParseData, 0, testParseData.length());
 	System.out.println( filingData[0].toCSV());
 	
-	Assert.assertEquals( filingData.length, 1 );
+	assertEquals( "Incorrect CSV results", filingData.length, 1 );
     }
 }
