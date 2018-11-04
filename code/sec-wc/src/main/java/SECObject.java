@@ -3,6 +3,8 @@
  *
  */
 
+import java.util.ArrayList;
+
 public abstract class SECObject {
     SECObjectType objectType;
 
@@ -19,7 +21,7 @@ public abstract class SECObject {
     /**
      * Return an Array of SECObjects when parsing a component
      */
-    public static SECObject[] parse(String content, int start, int end){
+    public ArrayList<SECObject> parse(String content, int start, int end){
 	return null;
     }
 }

@@ -7,32 +7,36 @@ public class SECObjectType {
 
     public SECObjectType( int type ) { this.type = type; }
 
-    public static final SECObjectType NONE      = new SECObjectType(0);
-    public static final SECObjectType CONTACT   = new SECObjectType(1);
-    public static final SECObjectType DOCUMENT  = new SECObjectType(2);
-    public static final SECObjectType ENTITY    = new SECObjectType(3);
-    public static final SECObjectType FILING    = new SECObjectType(4);
-    public static final SECObjectType FORM10K   = new SECObjectType(5);
-    public static final SECObjectType FORM4     = new SECObjectType(6);
-    public static final SECObjectType FORM8K    = new SECObjectType(7);
-    public static final SECObjectType HEADER    = new SECObjectType(8);
-    public static final SECObjectType OWNER_REL = new SECObjectType(9);
+    public static final SECObjectType NONE          = new SECObjectType(0);
+    public static final SECObjectType CONTACT       = new SECObjectType(1);
+    public static final SECObjectType DOCUMENT      = new SECObjectType(2);
+    public static final SECObjectType ENTITY        = new SECObjectType(3);
+    public static final SECObjectType FILING        = new SECObjectType(4);
+    public static final SECObjectType FILING_ENTITY = new SECObjectType(5);
+    public static final SECObjectType FORM10K       = new SECObjectType(6);
+    public static final SECObjectType FORM4         = new SECObjectType(7);
+    public static final SECObjectType FORM8K        = new SECObjectType(8);
+    public static final SECObjectType HEADER        = new SECObjectType(9);
+    public static final SECObjectType OWNER_REL     = new SECObjectType(10);
 
     private static final String NONE_S      = "none";
     private static final String CONTACT_S   = "contact";
     private static final String DOCUMENT_S  = "document";
     private static final String ENTITY_S    = "entity";
     private static final String FILING_S    = "filing";
+    private static final String FILING_ENTITY_S    = "filing_entity";
     private static final String FORM10K_S   = "form10k";
     private static final String FORM4_S     = "form4";
     private static final String FORM8K_S    = "form8k";
     private static final String HEADER_S    = "header";
     private static final String OWNER_REL_S = "owner_rel";
 
-    private static final String[] names = { NONE_S, CONTACT_S,DOCUMENT_S, ENTITY_S, FILING_S,
-                                            FORM10K_S, FORM4_S,  FORM8K_S,   HEADER_S, OWNER_REL_S };
-    private static final SECObjectType[] types = { NONE, CONTACT, DOCUMENT, ENTITY, FILING,
-				 	           FORM10K, FORM4, FORM8K, HEADER, OWNER_REL };
+    private static final String[] names = { NONE_S,   CONTACT_S,       DOCUMENT_S, ENTITY_S,
+					    FILING_S, FILING_ENTITY_S, FORM10K_S,  FORM4_S,
+					    FORM8K_S, HEADER_S,        OWNER_REL_S };
+    private static final SECObjectType[] types = { NONE,   CONTACT,       DOCUMENT, ENTITY,
+						   FILING, FILING_ENTITY, FORM10K,  FORM4,
+						   FORM8K, HEADER,        OWNER_REL };
     
     public String to_string() {
        if ( type >= 0 && type <= names.length ) {

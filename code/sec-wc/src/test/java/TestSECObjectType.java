@@ -15,8 +15,8 @@ public class TestSECObjectType {
 
 	assertEquals( "Incorrect SECObjectType.CONTACT",   tr0.to_int(),    1 );
 	assertEquals( "Incorrect SECObjectType.FILING",    tr4.to_string(), SECObjectType.FILING.to_string() );
-	assertEquals( "Incorrect SECObjectType.FORM4",     tr6.to_int(),    6 );
+	assertEquals( "Incorrect SECObjectType.FORM4",     tr6.to_int(),    7 );
 	assertEquals( "Incorrect SECObjectType.NONE",      tr8.to_string(), SECObjectType.NONE.to_string() );
-	assertEquals( "Incorrect SECObjectType.OWNER_REL", tr9.to_int(),    9);
+	assertEquals( "Incorrect SECObjectType.OWNER_REL", tr9.to_int(),    10);
     }
 }

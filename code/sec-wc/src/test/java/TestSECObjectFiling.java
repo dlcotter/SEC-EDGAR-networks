@@ -1,4 +1,5 @@
 
+import java.util.ArrayList;
 import static org.junit.Assert.assertEquals;
 import org.junit.Test;
 
@@ -14,13 +15,182 @@ public class TestSECObjectFiling {
 	+ "DATE AS OF CHANGE:		20071029\n"
 	+ "</SEC-HEADER>";
 
+    static final String testDocument= ""
++"<SEC-DOCUMENT>0000004281-17-000095.txt : 20170601\n"
++"<SEC-HEADER>0000004281-17-000095.hdr.sgml : 20170601\n"
++"<ACCEPTANCE-DATETIME>20170601173300\n"
++"ACCESSION NUMBER:		0000004281-17-000095\n"
++"CONFORMED SUBMISSION TYPE:	4\n"
++"PUBLIC DOCUMENT COUNT:		2\n"
++"CONFORMED PERIOD OF REPORT:	20170530\n"
++"FILED AS OF DATE:		20170601\n"
++"DATE AS OF CHANGE:		20170601\n"
++"ISSUER:		\n"
++"\n"
++"	COMPANY DATA:	\n"
++"		COMPANY CONFORMED NAME:			Arconic Inc.\n"
++"		CENTRAL INDEX KEY:			0000004281\n"
++"		STANDARD INDUSTRIAL CLASSIFICATION:	ROLLING DRAWING & EXTRUDING OF NONFERROUS METALS [3350]\n"
++"		IRS NUMBER:				250317820\n"
++"		STATE OF INCORPORATION:			PA\n"
++"		FISCAL YEAR END:			1231\n"
++"\n"
++"	BUSINESS ADDRESS:	\n"
++"		STREET 1:		390 PARK AVENUE\n"
++"		CITY:			NEW YORK\n"
++"		STATE:			NY\n"
++"		ZIP:			10022-4608\n"
++"		BUSINESS PHONE:		2128362732\n"
++"\n"
++"	MAIL ADDRESS:	\n"
++"		STREET 1:		390 PARK AVENUE\n"
++"		CITY:			NEW YORK\n"
++"		STATE:			NY\n"
++"		ZIP:			10022-4608\n"
++"\n"
++"	FORMER COMPANY:	\n"
++"		FORMER CONFORMED NAME:	ALCOA INC.\n"
++"		DATE OF NAME CHANGE:	20141003\n"
++"\n"
++"	FORMER COMPANY:	\n"
++"		FORMER CONFORMED NAME:	ALCOA INC\n"
++"		DATE OF NAME CHANGE:	19990105\n"
++"\n"
++"	FORMER COMPANY:	\n"
++"		FORMER CONFORMED NAME:	ALUMINUM CO OF AMERICA\n"
++"		DATE OF NAME CHANGE:	19920703\n"
++"\n"
++"REPORTING-OWNER:	\n"
++"\n"
++"	OWNER DATA:	\n"
++"		COMPANY CONFORMED NAME:			DOTY ELMER L\n"
++"		CENTRAL INDEX KEY:			0001241599\n"
++"\n"
++"	FILING VALUES:\n"
++"		FORM TYPE:		4\n"
++"		SEC ACT:		1934 Act\n"
++"		SEC FILE NUMBER:	001-03610\n"
++"		FILM NUMBER:		17885791\n"
++"</SEC-HEADER>\n"
++"<DOCUMENT>\n"
++"<TYPE>4\n"
++"<SEQUENCE>1\n"
++"<FILENAME>edgar.xml\n"
++"<DESCRIPTION>PRIMARY DOCUMENT\n"
++"<TEXT>\n"
++"<XML>\n"
++"<?xml version=\"1.0\"?>\n"
++"<ownershipDocument>\n"
++"\n"
++"    <schemaVersion>X0306</schemaVersion>\n"
++"\n"
++"    <documentType>4</documentType>\n"
++"\n"
++"    <periodOfReport>2017-05-30</periodOfReport>\n"
++"\n"
++"    <issuer>\n"
++"        <issuerCik>0000004281</issuerCik>\n"
++"        <issuerName>Arconic Inc.</issuerName>\n"
++"        <issuerTradingSymbol>ARNC</issuerTradingSymbol>\n"
++"    </issuer>\n"
++"\n"
++"    <reportingOwner>\n"
++"        <reportingOwnerId>\n"
++"            <rptOwnerCik>0001241599</rptOwnerCik>\n"
++"            <rptOwnerName>DOTY ELMER L</rptOwnerName>\n"
++"        </reportingOwnerId>\n"
++"        <reportingOwnerAddress>\n"
++"            <rptOwnerStreet1>390 PARK AVENUE</rptOwnerStreet1>\n"
++"            <rptOwnerStreet2></rptOwnerStreet2>\n"
++"            <rptOwnerCity>NEW YORK,</rptOwnerCity>\n"
++"            <rptOwnerState>NY</rptOwnerState>\n"
++"            <rptOwnerZipCode>10022</rptOwnerZipCode>\n"
++"            <rptOwnerStateDescription></rptOwnerStateDescription>\n"
++"        </reportingOwnerAddress>\n"
++"        <reportingOwnerRelationship>\n"
++"            <isDirector>1</isDirector>\n"
++"            <isOfficer>0</isOfficer>\n"
++"            <isTenPercentOwner>0</isTenPercentOwner>\n"
++"            <isOther>0</isOther>\n"
++"        </reportingOwnerRelationship>\n"
++"    </reportingOwner>\n"
++"\n"
++"    <nonDerivativeTable>\n"
++"        <nonDerivativeTransaction>\n"
++"            <securityTitle>\n"
++"                <value>Common Stock</value>\n"
++"            </securityTitle>\n"
++"            <transactionDate>\n"
++"                <value>2017-05-30</value>\n"
++"            </transactionDate>\n"
++"            <transactionCoding>\n"
++"                <transactionFormType>4</transactionFormType>\n"
++"                <transactionCode>A</transactionCode>\n"
++"                <equitySwapInvolved>0</equitySwapInvolved>\n"
++"            </transactionCoding>\n"
++"            <transactionAmounts>\n"
++"                <transactionShares>\n"
++"                    <value>4409</value>\n"
++"                </transactionShares>\n"
++"                <transactionPricePerShare>\n"
++"                    <value>0</value>\n"
++"                </transactionPricePerShare>\n"
++"                <transactionAcquiredDisposedCode>\n"
++"                    <value>A</value>\n"
++"                </transactionAcquiredDisposedCode>\n"
++"            </transactionAmounts>\n"
++"            <postTransactionAmounts>\n"
++"                <sharesOwnedFollowingTransaction>\n"
++"                    <value>4409</value>\n"
++"                </sharesOwnedFollowingTransaction>\n"
++"            </postTransactionAmounts>\n"
++"            <ownershipNature>\n"
++"                <directOrIndirectOwnership>\n"
++"                    <value>D</value>\n"
++"                </directOrIndirectOwnership>\n"
++"                <natureOfOwnership>\n"
++"                    <value></value>\n"
++"                </natureOfOwnership>\n"
++"            </ownershipNature>\n"
++"        </nonDerivativeTransaction>\n"
++"    </nonDerivativeTable>\n"
++"\n"
++"    <footnotes></footnotes>\n"
++"\n"
++"    <remarks>Exhibit 24 - Power of Attorney - Doty Elmer L</remarks>\n"
++"\n"
++"    <ownerSignature>\n"
++"        <signatureName>/s/ Margaret Lam (Assistant Secretary), by power of attorney</signatureName>\n"
++"        <signatureDate>2017-06-01</signatureDate>\n"
++"    </ownerSignature>\n"
++"</ownershipDocument>\n"
++"</XML>\n"
++"</TEXT>\n"
++"</DOCUMENT>\n"
++"</SEC-DOCUMENT>\n"
+    ;
+
     @Test
     public void testSECObjectFilingParse() {
 
+	SECObjectFiling filing = new SECObjectFiling( testParseData );
+	ArrayList<SECObject> filingData = filing.parse(testParseData, 0, testParseData.length());
+	System.out.println( filingData.get(0).toCSV());
 	
-	SECObject[] filingData = SECObjectFiling.parse(testParseData, 0, testParseData.length());
-	System.out.println( filingData[0].toCSV());
-	
-	assertEquals( "Incorrect CSV results", filingData.length, 1 );
+	assertEquals( "Incorrect CSV results", filingData.size(), 1 );
+    }
+
+    @Test
+    public void testSECObjectFilingParse1() {
+
+	SECObjectFiling filing = new SECObjectFiling( testDocument );
+	ArrayList<SECObject> filingData = filing.parse(testDocument, 0, testDocument.length());
+	if ( filingData != null ) {
+	    for (SECObject obj :filingData ) {
+		System.out.println( "testSECObjectFilingParse1: "+obj.toCSV());
+	    }
+	}
+
+	assertEquals( "Incorrect CSV results", filingData.size(), 3 );
     }
 }

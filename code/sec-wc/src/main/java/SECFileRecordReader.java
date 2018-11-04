@@ -19,14 +19,14 @@ import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 
 class SECFileRecordReader extends RecordReader<IntWritable, Text> {
 
-    private static String headerSTag = new String( "<SEC-HEADER>" );
-    private static String headerETag = new String( "</SEC-HEADER>" );
-
     private static String accessionTag = new String( "ACCESSION NUMBER:" );
     
+    private static String headerSTag = new String( "<SEC-HEADER>" );
+    private static String headerETag = new String( "</SEC-HEADER>" );
     private static String documentSTag = new String( "<DOCUMENT>" );
     private static String documentETag = new String( "</DOCUMENT>" );
     private static String filenameSTag = new String( "<FILENAME>" );
+    
 
     private String            accessionNumber = null;
     private Configuration     conf;

@@ -21,10 +21,6 @@ import org.apache.log4j.Logger;
 public class SECLoadData extends Configured implements Tool  {
 
     private static final Logger           LOG       = Logger.getLogger(SECLoadData.class);
-    // private static final SAXParserFactory saxParserFactory = SAXParserFactory.newInstance();
-    // private static SAXParser saxParser;
-    // saxParser = saxParserFactory.newInstance();
-
     
     public static void main(String[] args) throws Exception {
 	int res = ToolRunner.run(new SECLoadData(), args);
@@ -34,7 +30,8 @@ public class SECLoadData extends Configured implements Tool  {
     public int run(String[] args) throws Exception {
 	Job job = Job.getInstance(getConf(), "secloaddata");
 	job.setJarByClass(this.getClass());
-	job.setInputFormatClass(SECFileInputFormat.class);
+	//job.setInputFormatClass(SECFileInputFormat.class);
+	job.setInputFormatClass(WholeFileInputFormat.class);
 	// Use TextInputFormat, the default unless job.setInputFormatClass is used
 	FileInputFormat.addInputPath(job, new Path(args[0]));
 	FileOutputFormat.setOutputPath(job, new Path(args[1]));
@@ -45,24 +42,28 @@ public class SECLoadData extends Configured implements Tool  {
 	return job.waitForCompletion(true) ? 0 : 1;
     }
 
-    public static class Map extends Mapper<IntWritable, Text, Text, Text> {
+    public static class Map extends Mapper<NullWritable, Text, Text, Text> {
 	private Text word = new Text();
-	public void map(IntWritable key, Text fileData, Context context)
+	public void map(NullWritable key, Text fileData, Context context)
 	    throws IOException, InterruptedException {
 	    String content     = fileData.toString();
-	    int    recordType  = key.get();
-
+	    SECObjectFiling filing = new SECObjectFiling( content );
 	    // System.out.println( "Map.map: recordType = "+ recordType+"  content length = "+Long.toString(content.length()));
 
-	    SECObject[] secObjects = SECObjectFiling.parse( content, 0, content.length());
-	    if ( secObjects != null ) {
-		for ( int i = 0; i < secObjects.length; i++ ) {
-		    SECObject     item      = secObjects[i];
+	    ArrayList<SECObject> secObjects = filing.parse( content, 0, content.length());
+	    if ( secObjects != null && secObjects.size() > 0 ) {
+		for ( SECObject item : secObjects ) {
 		    SECObjectType itemType  = item.getType();
-		    String        tableName = itemType.to_string();
-		    String        csv_line  = item.toCSV();
-		
-		    context.write(new Text(tableName),new Text(csv_line));
+		    if ( itemType != SECObjectType.NONE ) {
+			String        tableName = itemType.to_string();
+			String        csv_line  = item.toCSV();
+			if ( tableName != null && 
+			     tableName.length() > 1 &&
+			     csv_line.length() > 5 ) {
+			    System.out.println( "Map: csv="+csv_line );
+			    context.write(new Text(tableName),new Text(csv_line));
+			}
+		    }
 		}
 	    }
 	}

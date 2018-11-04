@@ -1,7 +1,7 @@
 
 CREATE TYPE type_of_entity  AS ENUM ('issuer','owner');
 CREATE TYPE type_of_contact AS ENUM ('business','mail','other');
-CREATE TYPE type_of_format AS ENUM ('HTML','PDF','TEXT','XML');
+CREATE TYPE type_of_format  AS ENUM ('HTML','PDF','TEXT','XML');
 
 CREATE TABLE entities (
     cik             text,
