@@ -20,7 +20,7 @@ public class SECObjectFilingEntity extends SECObject {
     @Override
     public String toCSV() {
 	String csvLine =    cik+
-                        ","+accessionNumber
+                        "|"+accessionNumber
                         ;
 	// System.out.println( "toCSV: "+csvLine );
 	return csvLine;

@@ -69,35 +69,35 @@ public class SECObjectEntity extends SECObject {
     public String toCSV() {
 	csvLine.delete(0,csvLine.capacity());
 	csvLine.append( cik );
-	csvLine.append(",");
+	csvLine.append('|');
 	if ( tradingSymbol != null ) {
 	    csvLine.append(tradingSymbol );
 	}
-	csvLine.append(",");
+	csvLine.append('|');
 	if ( entityName != null ) {
 	    csvLine.append(entityName );
 	}
-	csvLine.append(",");
+	csvLine.append('|');
 	if ( entityType != null ) {
 	    csvLine.append(entityType );
 	}
-	csvLine.append(",");
+	csvLine.append('|');
 	if ( irsNumber != 0 ) {
 	    csvLine.append(irsNumber);
 	}
-	csvLine.append(",");
+	csvLine.append('|');
 	if ( sic != null ) {
 	    csvLine.append(sic);
 	}
-	csvLine.append(",");
+	csvLine.append('|');
 	if ( sicNumber != 0 ) {
 	    csvLine.append(sicNumber);
 	}
-	csvLine.append(",");
+	csvLine.append('|');
 	if ( stateOfInc != null ) {
 	    csvLine.append(stateOfInc);
 	}
-	csvLine.append(",");
+	csvLine.append('|');
 	if ( fiscalYearEnd != null ) {
 	    csvLine.append(fiscalYearEnd );
 	}

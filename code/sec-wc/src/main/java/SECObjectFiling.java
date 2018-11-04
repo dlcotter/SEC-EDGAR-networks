@@ -110,6 +110,8 @@ public class SECObjectFiling extends SECObject {
 	SimpleDateFormat sdf1 = new SimpleDateFormat("YYYY-MM-dd");
 	String date0 = null;
 	String date1 = null;
+	StringBuffer csvline = new StringBuffer(100);
+
 	try {
 	    date0 = sdf0.format(filingDate);
 	} catch (Exception e) {
@@ -121,13 +123,17 @@ public class SECObjectFiling extends SECObject {
 	    date1 = date0;
 	}
 
-	String csvLine =    accessionNumber+
-                        ","+submissionType+
-	                ","+documentCount+
-                        ","+date0+
-                        ","+date1;
-	// System.out.println( "toCSV: "+csvLine );
-	return csvLine;
+	csvline.delete(0,csvline.capacity());
+	csvline.append(accessionNumber);
+	csvline.append('|');
+	csvline.append(submissionType);
+	csvline.append('|');
+	csvline.append(documentCount);
+	csvline.append('|');
+	csvline.append(date0);
+	csvline.append('|');
+	csvline.append(date1);
+	return csvline.toString();
     }
 
     private ArrayList<SECObject>  parseXML( String content, int startLoc, int endLoc )
