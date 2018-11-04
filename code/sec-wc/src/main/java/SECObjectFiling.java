@@ -437,6 +437,8 @@ public class SECObjectFiling extends SECObject {
 		docEnd   = content.indexOf( documentETag, docStart+documentSTag.length());
 		// System.out.println( "parse:  docStart="+docStart );
 		// System.out.println( "parse:  docEnd=  "+docEnd );
+	    } else {
+		break;
 	    }
 	}
 	// System.out.println( "parse: have "+objects.size()+" objects");

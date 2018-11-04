@@ -30,6 +30,7 @@ public class SECObjectEntity extends SECObject {
     private int    sicNumber;
     private String stateOfInc;
     private String fiscalYearEnd;
+    private StringBuffer csvLine;
     
     public SECObjectEntity( String cik,
 			    String tradingSymbol,
@@ -58,6 +59,7 @@ public class SECObjectEntity extends SECObject {
 	}
 	this.stateOfInc    = stateOfInc;
 	this.fiscalYearEnd = fiscalYearEnd;
+	csvLine = new StringBuffer(100);
     }
     
     /**
@@ -65,18 +67,43 @@ public class SECObjectEntity extends SECObject {
      */
     @Override
     public String toCSV() {
-	String csvLine =    cik+
-                        ","+tradingSymbol+
-	                ",\""+entityName+"\""+
-                        ","+entityType+
-                        ","+irsNumber+
-                        ",\""+sic+"\""+
-                        ","+sicNumber+
-                        ","+stateOfInc+
-                        ","+fiscalYearEnd
+	csvLine.delete(0,csvLine.capacity());
+	csvLine.append( cik );
+	csvLine.append(",");
+	if ( tradingSymbol != null ) {
+	    csvLine.append(tradingSymbol );
+	}
+	csvLine.append(",");
+	if ( entityName != null ) {
+	    csvLine.append(entityName );
+	}
+	csvLine.append(",");
+	if ( entityType != null ) {
+	    csvLine.append(entityType );
+	}
+	csvLine.append(",");
+	if ( irsNumber != 0 ) {
+	    csvLine.append(irsNumber);
+	}
+	csvLine.append(",");
+	if ( sic != null ) {
+	    csvLine.append(sic);
+	}
+	csvLine.append(",");
+	if ( sicNumber != 0 ) {
+	    csvLine.append(sicNumber);
+	}
+	csvLine.append(",");
+	if ( stateOfInc != null ) {
+	    csvLine.append(stateOfInc);
+	}
+	csvLine.append(",");
+	if ( fiscalYearEnd != null ) {
+	    csvLine.append(fiscalYearEnd );
+	}
                         ;
 	// System.out.println( "toCSV: "+csvLine );
-	return csvLine;
+	return csvLine.toString();
     }
 }
 
