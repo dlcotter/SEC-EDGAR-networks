@@ -104,11 +104,11 @@ class SECFiling:
                     state = 10
                 elif name == 'rptOwnerCik':
                     rptOwnerCik = currentData
-                    print("endElement: rptOwnerCik: "+rptOwnerCik );
+#                    print("endElement: rptOwnerCik: "+rptOwnerCik );
                 elif name == 'rptOwnerName':
                     rptOwnerName = currentData
                 elif name == 'reportingOwnerRelationship':
-                    print("endElement: state = 10 for "+issuerCik)
+#                    print("endElement: state = 10 for "+issuerCik)
                     state = 10
                     xmlObjs.append(['owner_rels',
                                     issuerCik,
@@ -173,7 +173,7 @@ class SECFiling:
             def charData( data ):
                 nonlocal currentData
                 currentData = data
-                #            print( "charData: data="+currentData )
+#                print( "charData: data="+currentData )
             
             def parseXMLDocument( xmlContent ):
                 xmlParser = xml.parsers.expat.ParserCreate()
@@ -194,7 +194,7 @@ class SECFiling:
             for mo in re.finditer( tag_regex, docContent, re.MULTILINE|re.ASCII ):
                 kind     = mo.lastgroup
                 v        = mo.group(0)
-                print("parseXMLDocument kind="+kind)
+#                print("parseXMLDocument kind="+kind)
                 if kind == 'xmlSTag':
                     xmlStartLoc = mo.end()
                 elif kind == 'xmlETag':
@@ -240,12 +240,12 @@ class SECFiling:
             lastkind = ""
             currentAccessionNumber = ""
             tag_regex = '|'.join('(?P<%s>%s)' % pair for pair in tags)
-            print("tag_regex: "+tag_regex )
+ #           print("tag_regex: "+tag_regex )
             for mo in re.finditer( tag_regex, hdrContent, re.MULTILINE|re.ASCII ):
                 kind     = mo.lastgroup
                 startLoc = mo.end()
                 v        = mo.group(0)
-                print("parseHeader: state:"+str(state)+"  kind="+kind+"  lastkind="+lastkind+"  v="+v+"  startLoc = "+str(startLoc)) # +": ("+hdrContent[startLoc:(startLoc+20)]+")")
+#                print("parseHeader: state:"+str(state)+"  kind="+kind+"  lastkind="+lastkind+"  v="+v+"  startLoc = "+str(startLoc)) # +": ("+hdrContent[startLoc:(startLoc+20)]+")")
                 if kind == 'value':
                     values[lastkind] = v
                 elif kind == 'issuer':
@@ -258,7 +258,7 @@ class SECFiling:
                                  values.pop('documentCount'),
                                  toDate(values.pop('reportingPeriod')),
                                  filingDate,
-                                 toDate(values.pop('changeDate'))]]
+                                 toDate(values.get('changeDate','1990-01-01'))]]
                 elif kind == 'businessAddress':
                     if state == 10:
                         state = 11
@@ -392,5 +392,9 @@ class SECFiling:
 if __name__ == "__main__":
     with io.StringIO("",newline='\n') as csvStrings:
         csvWriter = csv.writer(csvStrings, delimiter='|',quoting=csv.QUOTE_MINIMAL )
-        SECFiling.parse( sys.argv[1], csvWriter)
+        for f in sys.argv[1:]:
+            try:
+                SECFiling.parse( f, csvWriter)
+            except xml.parsers.expat.ExpatError as inst:
+                sys.stderr.write("XML parsing error for {0}: {1}\n".format(f,str(inst)))
         print(csvStrings.getvalue())
