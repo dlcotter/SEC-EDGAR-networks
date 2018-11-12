@@ -3,6 +3,7 @@ import csv
 import io
 import re
 import sys
+import xml.parsers.expat
 
 class SECDict(dict):
     def __missing__(self,key):
@@ -19,15 +20,6 @@ class SECFiling:
 
     
     objType = "SECFiling"
-    secHeaderStartRE   = re.compile("<SEC-HEADER>",re.MULTILINE)
-    secHeaderEndRE     = re.compile("</SEC-HEADER>",re.MULTILINE)
-    secDocumentStartRE = re.compile("<DOCUMENT>",re.MULTILINE)
-    secDocumentEndRE   = re.compile("</DOCUMENT>",re.MULTILINE)
-    secFilenameRE      = re.compile("<FILENAME>",re.MULTILINE)
-    secTextStartRE     = re.compile("<TEXT>",re.MULTILINE)
-    secTextEndRE       = re.compile("</TEXT>",re.MULTILINE)
-    secXMLStartRE      = re.compile("<XML>",re.MULTILINE)
-    secXMLEndRE        = re.compile("</XML>",re.MULTILINE)
 
     global Token
     Token = collections.namedtuple( 'Token', ['type','value'])
@@ -68,9 +60,147 @@ class SECFiling:
                             self.filingDate,
                             self.changeDate])
 
+    def parseDocument( docContent, accessionNumber ):
+        global parseDocument
+
+        xmlObjs                   = []
+        currentData               = ''
+        currentElement            = ''
+        documentType              = ''
+        filingDate                = ''
+        rptOwnerCik               = ''
+        rptOwnerName              = ''
+        rptOwnerStreet1           = ''
+        rptOwnerStreet2           = ''
+        rptOwnerCity              = ''
+        rptOwnerState             = ''
+        rptOwnerZipCode           = ''
+        rptOwnerIsDirector        = 0
+        rptOwnerIsOfficer         = 0
+        rptOwnerIsTenPercentOwner = 0
+        rptOwnerIsOther           = 0
+        rptOwnerOfficerTitle      = ''
+        state                     = 0
+
+        def endElement( name ):
+            nonlocal currentData,currentElement,documentType,filingDate,issuerCik
+            nonlocal rptOwnerCik,rptOwnerName
+            nonlocal rptOwnerStreet1,rptOwnerStreet2,rptOwnerCity,rptOwnerState,rptOwnerZipCode
+            nonlocal rptOwnerIsDirector,rptOwnerIsOfficer,rptOwnerIsTenPercentOwner
+            nonlocal rptOwnerIsOther,rptOwnerOfficerTitle
+            nonlocal state,xmlObjs
+
+ #           print("endElement name="+name )
+
+            if name == 'documentType':
+                state = 1
+            elif name == 'reportingOwner':
+                state = 10
+            elif name == 'rptOwnerCik':
+                rptOwnerCik = currentData
+                print("endElement: rptOwnerCik: "+rptOwnerCik );
+            elif name == 'rptOwnerName':
+                rptOwnerName = currentData
+            elif name == 'reportingOwnerRelationship':
+                print("endElement: state = 10 for "+issuerCik)
+                state = 10
+                xmlObjs.append(['owner_rels',
+                                issuerCik,
+                                rptOwnerCik,
+                                filingDate,
+                                rptOwnerIsDirector,
+                                rptOwnerIsOfficer,
+                                rptOwnerIsTenPercentOwner,
+                                rptOwnerIsOther,
+                                rptOwnerOfficerTitle ])
+            elif name == 'isDirector':
+                rptOwnerIsDirector        = currentData
+            elif name == 'isOfficer':
+                rptOwnerIsOfficer         = currentData
+            elif name == 'isTenPercentOwner':
+                rptOwnerIsTenPercentOwner = currentData
+            elif name == 'isOther':
+                rptOwnerIsOther           = currentData
+            elif name == 'officerTitle':
+                rptOwnerOfficerTitle      = currentData
+
+        def startElement(name, attrs):
+            nonlocal currentData,currentElement,documentType,filingDate,issuerCik
+            nonlocal rptOwnerCik,rptOwnerName
+            nonlocal rptOwnerStreet1,rptOwnerStreet2,rptOwnerCity,rptOwnerState,rptOwnerZipCode
+            nonlocal rptOwnerIsDirector,rptOwnerIsOfficer,rptOwnerIsTenPercentOwner
+            nonlocal rptOwnerIsOther,rptOwnerOfficerTitle
+            nonlocal state,xmlObjs,accessionNumber
+            
+#            print("startElement: name="+name)
+            
+            currentElement = name
+            currentAttrs   = attrs
+            if name == 'documentType':
+                documentType = currentData
+            elif name == 'reportingOwner':
+                rptOwnerCik       = ''
+                state = 20
+            elif name == 'rptOwnerCik':
+                state = 21
+            elif name == 'rptOwnerName':
+                state = 22
+            elif name == 'reportingOwnerRelationship':
+                rptOwnerIsDirector        = 0
+                rptOwnerIsOfficer         = 0
+                rptOwnerIsTenPercentOwner = 0
+                rptOwnerIsOther           = 0
+                rptOwnerOfficerTitle      = ''
+                state = 30
+            elif name == 'isDirector':
+                state = 30
+            elif name == 'isOfficer':
+                state = 30
+            elif name == 'isTenPercentOwner':
+                state = 30
+            elif name == 'isOther':
+                state = 30
+            elif name == 'officerTitle':
+                state = 30
+
+        def charData( data ):
+            nonlocal currentData
+            currentData = data
+#            print( "charData: data="+currentData )
+
+            
+        def parseXMLDocument( xmlContent ):
+            xmlParser = xml.parsers.expat.ParserCreate()
+            xmlParser.StartElementHandler  = startElement
+            xmlParser.CharacterDataHandler = charData
+            xmlParser.EndElementHandler    = endElement
+            xmlParser.Parse( xmlContent )
+            
+        tags = [
+#                ('filenameTag',  r'<FILENAME>'),
+#                ('textSTag',     r'<TEXT>'),
+#                ('textETag',     r'</TEXT>'),
+                ('xmlSTag',      r'<XML>'),
+                ('xmlETag',      r'</XML>'),
+            ]
+        xmlStartLoc = 0
+        tag_regex = '|'.join('(?P<%s>%s)' % pair for pair in tags)
+        for mo in re.finditer( tag_regex, docContent, re.MULTILINE|re.ASCII ):
+            kind     = mo.lastgroup
+            v        = mo.group(0)
+            print("parseDocument kind="+kind)
+            if kind == 'xmlSTag':
+                xmlStartLoc = mo.end()
+            elif kind == 'xmlETag':
+                xmlEndLoc = mo.start()
+                xmlContent = docContent[xmlStartLoc+1:xmlEndLoc]
+                parseXMLDocument( xmlContent )
+                yield xmlObjs
         
     def parseHeader(hdrContent):
         global parseHeader
+        nonlocal issuerCik
+
         tags = [
             ('accessionNumber', r'ACCESSION NUMBER:' ),
             ('businessAddress', r'BUSINESS ADDRESS:'),
@@ -96,7 +226,8 @@ class SECFiling:
             ('submissionType',  r'CONFORMED SUBMISSION TYPE:'),
             ('tradingSymbol',   r'TRADING SYMBOL:'),
             ('zip',             r'ZIP:'),
-            ('value',           r'([A-Za-z0-9-&/ \[\]]+)$'),
+            ('value',           r'([A-Za-z0-9-&;/ \[\]]+)$'),
+#            ('value',           r'([A-Za-z0-9-&/ \[\]]+)$'),
 
         ]
         values = SECDict()
@@ -133,6 +264,7 @@ class SECFiling:
                         mo = re.search(r'\[(\d+)\]',sic)
                         if mo:
                             sicNumber = mo.group(1)
+                        issuerCik = values['cik']
                         yield [[ 'filings-entities',
                                  values['accessionNumber'],
                                  values['cik']],
@@ -218,21 +350,43 @@ class SECFiling:
                     values.get('phone','')]]
         
     def parse(fileName,csvWriter):
+        docTags = [
+            ('headerSTag',   r'<SEC-HEADER>'),
+            ('headerETag',   r'</SEC-HEADER>'),
+            ('documentSTag', r'<DOCUMENT>'),
+            ('documentETag', r'</DOCUMENT>'),
+        ]
+
         with open( fileName, "r" ) as inFile:
             fileContent = inFile.read()
             inFile.close()
-            match = SECFiling.secHeaderStartRE.search(fileContent)
-            if match is not None:
-                headerStart = match.start(0)
-                match = SECFiling.secHeaderEndRE.search(fileContent, headerStart+12)
-                if match is not None:
-                    headerEnd = match.start(0)
-#                    print("Header content found at: "+str(headerStart)+" - "+str(headerEnd))
-                    headerContent = fileContent[headerStart:headerEnd]
-#                    print( "Header:")
-#                    print( headerContent )
-                    for obj in SECFiling.parseHeader(headerContent):
+            docTag_regex =  '|'.join('(?P<%s>%s)' % pair for pair in docTags)
+            documentStartLoc = 0
+            documentEndLoc   = 0
+            documentContentt = ''
+            accessionNumber  = ''
+            for mo in re.finditer( docTag_regex, fileContent, re.MULTILINE|re.ASCII ):
+                if mo.lastgroup == 'headerSTag':
+                    documentStartLoc = mo.start(0)
+                elif mo.lastgroup == 'headerETag':
+                    documentEndLoc = mo.start(0)
+                    documentContent = fileContent[documentStartLoc:documentEndLoc]
+                    for obj in SECFiling.parseHeader(documentContent):
+                        for row in obj:
+                            if row[0] == 'filings':
+                                accessionNumber = row[1]
                         csvWriter.writerows(obj)
+#                        print("processing AN: "+accessionNumber)
+                elif mo.lastgroup == 'documentSTag':
+                    documentStartLoc = mo.start(0)
+                elif mo.lastgroup == 'documentETag':
+                    documentEndLoc = mo.start(0)
+                    documentContent = fileContent[documentStartLoc:documentEndLoc]
+                    for obj in SECFiling.parseDocument(documentContent,accessionNumber):
+                        if str(obj[0]) != 'ZZComplete':
+                            csvWriter.writerows(obj)
+                    
+            
             
 if __name__ == "__main__":
     with io.StringIO("",newline='\n') as csvStrings:
