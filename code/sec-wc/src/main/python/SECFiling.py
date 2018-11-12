@@ -339,19 +339,19 @@ class SECFiling:
                                 values.get('phone','')]]
                 elif kind == 'ownerData':
                     state = 21
-                    lastkind = kind
-                    if state == 22:
-                        yield [['contacts',
-                                values['cik'],
-                                filingDate,
-                                'owner',
-                                values.get('street1',''),
-                                values.get('street2',''),
-                                values.get('street3',''),
-                                values.get('city',''),
-                                values.get('state',''),
-                                values.get('zip',''),
-                                values.get('phone','')]]
+                lastkind = kind
+            if state == 22:
+                yield [['contacts',
+                    values['cik'],
+                        filingDate,
+                        'owner',
+                        values.get('street1',''),
+                        values.get('street2',''),
+                        values.get('street3',''),
+                        values.get('city',''),
+                        values.get('state',''),
+                        values.get('zip',''),
+                        values.get('phone','')]]
                                                     
         docTags = [
             ('headerSTag',   r'<SEC-HEADER>'),
