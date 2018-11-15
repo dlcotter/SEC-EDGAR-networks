@@ -183,25 +183,52 @@ class SECFiling:
                 xmlParser.Parse( xmlContent )
             
             tags = [
-                #                ('filenameTag',  r'<FILENAME>'),
-                #                ('textSTag',     r'<TEXT>'),
-                #                ('textETag',     r'</TEXT>'),
+                ('description',  r'<DESCRIPTION>'),
+                ('filename',     r'<FILENAME>'),
+                ('sequence',     r'<SEQUENCE>'),
+                ('type',         r'<TYPE>'),
+                # ('textSTag',     r'<TEXT>'),
+                # ('textETag',     r'</TEXT>'),
+                ('value',           r'([A-Za-z0-9-.&;/ \[\]]+)$'),
                 ('xmlSTag',      r'<XML>'),
                 ('xmlETag',      r'</XML>'),
             ]
-            xmlStartLoc = 0
             tag_regex = '|'.join('(?P<%s>%s)' % pair for pair in tags)
+            values = SECDict()
+            state = 0
+            kind  = ""
+            xmlStartLoc = 0
+            lastkind = ''
             for mo in re.finditer( tag_regex, docContent, re.MULTILINE|re.ASCII ):
                 kind     = mo.lastgroup
                 v        = mo.group(0)
+                startLoc = mo.end()
 #                print("parseXMLDocument kind="+kind)
-                if kind == 'xmlSTag':
+                if kind == 'description':
+                    lastkind = kind
+                elif kind == 'filename':
+                    lastkind = kind
+                elif kind == 'sequence':
+                    lastkind = kind
+                elif kind == 'type':
+                    lastkind = kind
+                elif kind == 'value':
+                    values[lastkind] = v
+                elif kind == 'xmlSTag':
                     xmlStartLoc = mo.end()
                 elif kind == 'xmlETag':
                     xmlEndLoc = mo.start()
+                    xmlObjs.append(['documents',                     # table
+                                    accessionNumber,                 # accessionNumber
+                                    values.get('sequence',''),       # sequence
+                                    values.get('type','4'),          # type
+                                    values.get('filename',''),       # filename
+                                    'xml',                           # format
+                                    values.get('description','')])   # description
                     xmlContent = docContent[xmlStartLoc+1:xmlEndLoc]
                     parseXMLDocument( xmlContent )
                     yield xmlObjs
+                    
         
         def parseHeader(hdrContent):
             nonlocal accessionNumber,filingDate,issuerCik
@@ -231,7 +258,7 @@ class SECFiling:
                 ('submissionType',  r'CONFORMED SUBMISSION TYPE:'),
                 ('tradingSymbol',   r'TRADING SYMBOL:'),
                 ('zip',             r'ZIP:'),
-                ('value',           r'([A-Za-z0-9-&;/ \[\]]+)$'),
+                ('value',           r'([A-Za-z0-9-&;,/ \[\]]+)$'),
                 #            ('value',           r'([A-Za-z0-9-&/ \[\]]+)$'),
                 ]
             values = SECDict()
@@ -261,7 +288,7 @@ class SECFiling:
                                 issuerCik = values.get('cik')
                                 entityName = values.get('companyName')
                                 if accessionNumber and entityName and issuerCik:
-                                    yield [[ 'filings-entities',
+                                    yield [[ 'filings_entities',
                                              accessionNumber,
                                              issuerCik],
                                            [ 'entities',
@@ -279,7 +306,7 @@ class SECFiling:
                     ownerCik = values.get('cik')
                     ownerName = values.get('companyName')
                     if accessionNumber and ownerCik and ownerName:
-                        yield [[ 'filings-entities',
+                        yield [[ 'filings_entities',
                                  accessionNumber,
                                  ownerCik],
                                [ 'entities',

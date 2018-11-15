@@ -73,6 +73,7 @@ CREATE TABLE documents (
     type            text,
     filename        text,
     format          type_of_format,
+    description     text,
     PRIMARY KEY (filing,sequence)
 );
 
