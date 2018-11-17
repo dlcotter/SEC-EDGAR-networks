@@ -9,6 +9,7 @@ import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.RecordReader;
@@ -16,16 +17,16 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 
 
-class SECFileRecordReader extends RecordReader<Text, Text> {
-
-    private static String headerSTag = new String( "<SEC-HEADER>" );
-    private static String headerETag = new String( "</SEC-HEADER>" );
+class SECFileRecordReader extends RecordReader<IntWritable, Text> {
 
     private static String accessionTag = new String( "ACCESSION NUMBER:" );
     
+    private static String headerSTag = new String( "<SEC-HEADER>" );
+    private static String headerETag = new String( "</SEC-HEADER>" );
     private static String documentSTag = new String( "<DOCUMENT>" );
     private static String documentETag = new String( "</DOCUMENT>" );
     private static String filenameSTag = new String( "<FILENAME>" );
+    
 
     private String            accessionNumber = null;
     private Configuration     conf;
@@ -40,6 +41,8 @@ class SECFileRecordReader extends RecordReader<Text, Text> {
     private int               state;
     private int               endLoc;
     private int               fileLength;
+    private IntWritable       nextKey;
+    private Text              nextValue;
 
     @Override
     public void initialize(InputSplit split, TaskAttemptContext context)
@@ -54,6 +57,8 @@ class SECFileRecordReader extends RecordReader<Text, Text> {
 	this.startLoc = 0;
 	this.state = 0;
 	this.value = null;
+	this.nextKey = null;
+	this.nextValue = null;
     }
 
     @Override
@@ -68,46 +73,43 @@ class SECFileRecordReader extends RecordReader<Text, Text> {
 		IOUtils.readFully(in, fileData, 0, fileData.length);
 		contents = new String( fileData, "UTF-8");
 		fileLength = contents.length();
-		System.out.println( "nextKeyValue_1:  read "+Long.toString(contents.length())+" bytes" );
+		// System.out.println( "nextKeyValue_1:  read "+Long.toString(contents.length())+" bytes" );
 	    } finally {
 		IOUtils.closeStream(in);
 	    }
+	    getCurrentKeyValue();
 	    read = true;
-	    return true;
-	} else if ( endLoc < fileLength ) {
-	    System.out.println( "nextKeyValue:  endLoc="+endLoc+"  fileLength="+fileLength);
-	    return true;
+	    return ( nextKey != null ) ? true : false;
 	} else {
-	    return false;
+	    getCurrentKeyValue();
+	    // System.out.println( "nextKeyValue_2:  endLoc="+endLoc+"  fileLength="+fileLength);
+	    return ( nextKey != null ) ? true : false;
 	}
     }
 
     /**
-     * getCurrentKey - parse through the content, looking for the next key location
+     * getCurrentKeyValue - parse through the content, looking for the next key location
      */
-    @Override
-    public Text getCurrentKey() throws IOException, InterruptedException {
-	Text key = null;
+    public void getCurrentKeyValue() throws IOException, InterruptedException {
 	int offset = 0;
-	System.out.println("getCurrentKey: state = "+state+"  startLoc= "+startLoc+"  endLoc= "+endLoc);
+	// System.out.println("getCurrentKeyValue: state = "+state+"  startLoc= "+startLoc+"  endLoc= "+endLoc);
 	if ( endLoc < fileLength ) {
 	    if ( state == 0 ) {
+		startLoc = 0;
+		endLoc   = 0;
 	        offset = contents.indexOf(headerSTag,startLoc);
 		if ( offset != -1 ) {
 		    startLoc = offset;
 		    offset = contents.indexOf(headerETag,offset);
 		    if ( offset != -1 ) {
 			endLoc = offset + headerETag.length();
-			offset = contents.indexOf( accessionTag, startLoc );
-			if ( offset != -1 && (accessionNumber = getAccessionNumber(offset)) != null ) {
-			    key = new Text(accessionNumber + ":header");
-			}
 		    }
 		}
-		if ( key != null ) {
+		if ( endLoc != 0 ) {
 		    state = 1;
-		} else {
-		    state = 2;
+		    nextKey   = new IntWritable( SECObjectType.HEADER.to_int( ));
+		    nextValue = new Text( contents.substring( startLoc, endLoc ));
+		    startLoc = endLoc;
 		}
 	    } else if ( state == 1 ) {
 		startLoc = endLoc+1;
@@ -116,38 +118,32 @@ class SECFileRecordReader extends RecordReader<Text, Text> {
 		    startLoc = offset;
 		    offset = contents.indexOf(documentETag,offset);
 		    if ( offset != -1 ) {
-			String filename = null;
-			endLoc = offset + documentETag.length();
-			offset = contents.indexOf(filenameSTag, startLoc);
-			System.out.println("getCurrentKey: filenameSTag offset = "+offset );
-			if ( offset != -1 && (filename = getFileName( offset+filenameSTag.length())) != null) {
-			    System.out.println("getCurrentKey: filename = "+filename );
-			    key = new Text( accessionNumber + ":" + filename );
-			} else {
-			    key = new Text( accessionNumber );
-			}
-		    } else {
-			endLoc = fileLength;
-			state = 2;
+			endLoc = offset;
+			nextKey   = new IntWritable( SECObjectType.DOCUMENT.to_int());
+			nextValue = new Text( contents.substring( startLoc, endLoc ));
+			startLoc = endLoc;
 		    }
 		} else {
-		    endLoc = fileLength;
+		    startLoc = fileLength+1;
+		    endLoc = fileLength+1;
 		    state = 2;
+		    nextKey = null;
+		    nextValue = null;
 		}
 	    }
-	} 
-	offset = contents.indexOf(documentSTag,endLoc+1);
-	if ( offset == -1 ) {
-	    endLoc = fileLength;
 	}
-	return key;
+    }
+
+    @Override
+    public IntWritable getCurrentKey() throws IOException,
+					 InterruptedException {
+	return nextKey;
     }
 
     @Override
     public Text getCurrentValue() throws IOException,
 					 InterruptedException {
-	Text value = new Text( contents.substring( startLoc, endLoc ));
-	return value;
+	return nextValue;
     }
 
     @Override
@@ -192,7 +188,7 @@ class SECFileRecordReader extends RecordReader<Text, Text> {
 	int start = 0;
 	int end   = 0;
 
-	System.out.println("SECFileRecordReader.getFileName.a: sLoc="+sLoc+"  fileLength="+fileLength );
+	// System.out.println("SECFileRecordReader.getFileName.a: sLoc="+sLoc+"  fileLength="+fileLength );
 	if ( sLoc < fileLength) {
 	    char c = contents.charAt(i);
 	    start = i;
@@ -201,7 +197,7 @@ class SECFileRecordReader extends RecordReader<Text, Text> {
 		c = contents.charAt(i);
 	    }
 	    end = i;
-	    System.out.println("SECFileRecordReader.getFileName.b: start="+start+"  end="+end );
+	    // System.out.println("SECFileRecordReader.getFileName.b: start="+start+"  end="+end );
 	    if ( i < fileLength && start < end ) {
 		return contents.substring( start, end );
 	    } else {
