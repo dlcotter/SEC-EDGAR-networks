@@ -18,12 +18,12 @@ CREATE TABLE entities (
     cik             text,
     trading_symbol  text,
     entity_name     text NOT NULL,
-    entity_type     type_of_entity NOT NULL,
     irsnumber       text,
     sic             text,
     sic_number      text,
     state_of_inc    char(2),
     fiscal_year_end char(4),
+    filing_date     date,
     PRIMARY KEY (cik)
 );
 
@@ -47,6 +47,7 @@ CREATE TABLE filings (
     accession_number text,
     submission_type  text,
     document_count   int,
+    reporting_date   date,
     filing_date      date,
     change_date      date,
     PRIMARY KEY (accession_number)
@@ -80,6 +81,7 @@ CREATE TABLE documents (
 CREATE TABLE filings_entities (
     filing          text REFERENCES filings (accession_number) NOT NULL,
     entity          text REFERENCES entities (cik) NOT NULL,
+    entity_type     type_of_entity NOT NULL,
     PRIMARY kEY (filing,entity)
 );
 

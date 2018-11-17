@@ -143,6 +143,7 @@ class SECFiling:
             
                 currentElement = name
                 currentAttrs   = attrs
+                currentData    = ''      # don't carry over data from previous elements
                 if name == 'documentType':
                     documentType = currentData
                 elif name == 'reportingOwner':
@@ -172,8 +173,8 @@ class SECFiling:
 
             def charData( data ):
                 nonlocal currentData
+                # change new lines to
                 currentData = data
-#                print( "charData: data="+currentData )
             
             def parseXMLDocument( xmlContent ):
                 xmlParser = xml.parsers.expat.ParserCreate()
@@ -218,13 +219,15 @@ class SECFiling:
                     xmlStartLoc = mo.end()
                 elif kind == 'xmlETag':
                     xmlEndLoc = mo.start()
-                    xmlObjs.append(['documents',                     # table
-                                    accessionNumber,                 # accessionNumber
-                                    values.get('sequence',''),       # sequence
-                                    values.get('type','4'),          # type
-                                    values.get('filename',''),       # filename
-                                    'xml',                           # format
-                                    values.get('description','')])   # description
+                    formType = values.get('type')
+                    if formType == '4':
+                        xmlObjs.append(['documents',                     # table
+                                        accessionNumber,                 # accessionNumber
+                                        values.get('sequence',''),       # sequence
+                                        formType,                        # type
+                                        values.get('filename',''),       # filename
+                                        'xml',                           # format
+                                        values.get('description','')])   # description
                     xmlContent = docContent[xmlStartLoc+1:xmlEndLoc]
                     parseXMLDocument( xmlContent )
                     yield xmlObjs
@@ -290,17 +293,18 @@ class SECFiling:
                                 if accessionNumber and entityName and issuerCik:
                                     yield [[ 'filings_entities',
                                              accessionNumber,
-                                             issuerCik],
+                                             issuerCik,
+                                             'issuer'],
                                            [ 'entities',
                                              issuerCik,
+                                             filingDate,
                                              values.pop('tradingSymbol',''),
                                              entityName,
-                                             'issuer',
                                              values.pop('irsNumber',''),
                                              sic,
                                              sicNumber,
                                              values.pop('stateOfInc',''),
-                                             values.pop('fiscalYearEnd','') ]]
+                                             values.pop('fiscalYearEnd','')]]
                 elif kind == 'filingData':
                     state = 22
                     ownerCik = values.get('cik')
@@ -308,17 +312,18 @@ class SECFiling:
                     if accessionNumber and ownerCik and ownerName:
                         yield [[ 'filings_entities',
                                  accessionNumber,
-                                 ownerCik],
+                                 ownerCik,
+                                 'owner'],
                                [ 'entities',
                                  ownerCik,
+                                 filingDate,
                                  '',
                                  ownerName,
-                                 'owner',
                                  '',
                                  '',
                                  '',
                                  '',
-                                 '' ]]
+                                 '']]
                 elif kind == 'issuer':
                     if state == 0:
                         state = 10
