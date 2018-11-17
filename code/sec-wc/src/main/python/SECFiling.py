@@ -18,7 +18,6 @@ def toDate(str):
 class SECFiling:
     """An SEC Filing"""
 
-    
     objType = "SECFiling"
 
     global Token
@@ -26,41 +25,8 @@ class SECFiling:
     
     def __init__(self, accessionNumber, submissionType, docCount, reportingDate, filingDate, changeDate ):
         self.objType = SECFiling.objType
-        self.accessionNumber = accessionNumber
-        self.submissionType = submissionType
-        self.docCount = docCount
-        self.reportingDate = reportingDate
-        self.filingDate = filingDate
-        self.changeDate = changeDate
 
-    def setAccessionNumber(self, accessionNumber):
-        self.accessionNumber = accessionNumber
-            
-    def subType(self, subType):
-        self.subType = subType
-
-    def docCount(self, docCount):
-        self.docCount = docCount
-
-    def reportingDate(self, reportingDate):
-        self.reportingDate = reportingDate
-
-    def filingDate(self, filingDate):
-        self.filingDate = filingDate
-
-    def changeDate(self, changeDate):
-        self.changeDate = changeDate
-
-    def toCSV(self,csvWriter):
-        csvWriter.writerow([self.objType,
-                            self.accessionNumber,
-                            self.submissionType,
-                            self.docCount,
-                            self.reportingDate,
-                            self.filingDate,
-                            self.changeDate])
-
-    def parse(fileName,csvWriter):
+    def parse(fileName,outputrows):
         global parse
         accessionNumber = ''
         issuerCik       = ''
@@ -452,7 +418,7 @@ class SECFiling:
                         for row in obj:
                             if row[0] == 'filings':
                                 accessionNumber = row[1]
-                        csvWriter.writerows(obj)
+                        outputRows.extend(obj)
 #                        print("processing AN: "+accessionNumber)
                 elif mo.lastgroup == 'documentSTag':
                     documentStartLoc = mo.start(0)
@@ -460,16 +426,16 @@ class SECFiling:
                     documentEndLoc = mo.start(0)
                     documentContent = fileContent[documentStartLoc:documentEndLoc]
                     for obj in parseDocument(documentContent,accessionNumber):
-                        csvWriter.writerows(obj)
-                    
-            
+                        outputRows.extend(obj)
             
 if __name__ == "__main__":
     with io.StringIO("",newline='\n') as csvStrings:
         csvWriter = csv.writer(csvStrings, delimiter='|',quoting=csv.QUOTE_MINIMAL )
+        outputRows = []
         for f in sys.argv[1:]:
             try:
-                SECFiling.parse( f, csvWriter)
+                SECFiling.parse( f, outputRows )
             except xml.parsers.expat.ExpatError as inst:
                 sys.stderr.write("XML parsing error for {0}: {1}\n".format(f,str(inst)))
+        csvWriter.writerows(outputRows)
         print(csvStrings.getvalue())
