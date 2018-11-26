@@ -1,0 +1,160 @@
+colnames = ",".join(("c{} STRING".format(i) for i in range(0,10)))
+secdata = spark.read.csv('stocks.data',sep="|",schema=colnames)
+
+owner_rels = secdata.filter(secdata.c0 == 'owner_rels').\
+select(secdata.c1.alias('issuer_cik'),
+secdata.c2.alias('owner_cik'),
+secdata.c3.cast('date').alias('filing_date'),
+secdata.c4.cast('boolean').alias('isDirector'),
+secdata.c5.cast('boolean').alias('isOfficer'),
+secdata.c6.cast('boolean').alias('isTenPercentOwner'),
+secdata.c7.cast('boolean').alias('isOther'),
+secdata.c8.alias('owner_officer_title'))
+
+ents = secdata.filter(secdata.c0 == 'entities').\
+select(secdata.c1.alias('cik'),
+secdata.c2.alias('filing_date').cast('date'),
+secdata.c3.alias('trading_symbol'),
+secdata.c4.alias('entity_name'),
+secdata.c5.alias('irsnumber'),
+secdata.c6.alias('sic'),
+secdata.c7.alias('sic_number'),
+secdata.c8.alias('state_of_inc'),
+secdata.c9.alias('fiscal_year_end'))
+
+filings_ents = secdata.filter(secdata.c0 == 'filings_entities').\
+select(secdata.c1.alias('accession_number'),
+secdata.c2.alias('cik'),
+secdata.c3.alias('entity_type'))
+
+filings = secdata.filter(secdata.c0 == 'filings').\
+select(secdata.c1.alias('accession_number'),
+secdata.c2.alias('submission_type'),
+secdata.c3.alias('document_count').cast('int'),
+secdata.c4.cast('date').alias('reporting_period'),
+secdata.c5.cast('date').alias('filing_date'),
+secdata.c6.cast('date').alias('change_date'))
+
+from pyspark.sql.functions import lit
+from pyspark.sql.types import NullType
+
+def combine_df(one,other):
+    one_with_other = 'one.'+'.'.join((f'withColumn("{colname}",lit(None).cast(NullType()))' for colname in other.columns))
+    other_with_one = 'other.'+'.'.join((f'withColumn("{colname}",lit(None).cast(NullType()))' for colname in one.columns))
+    one = eval(one_with_other)
+    other = eval(other_with_one)
+    return one.union(other)
+
+#Experiment 2: Examine how many trades entities are involved in
+#Could we define a mapping using a dict between dataframe types and GEFX types to render these unnecessary or greatly reduce how many need to be entered?
+node_attribs = ('cik','string'),\
+('filing_date','date'),\
+('trading_symbol','string'),\
+('entity_name','string'),\
+('irsnumber','string'),\
+('sic','string'),\
+('sic_number','string'),\
+('state_of_inc','string'),\
+('fiscal_year_end','string'),\
+('accession_number','string),\
+('submission_type','string'),\
+('document_count','int'),\
+('reporting_period','date'),\
+('change_date','date')
+
+edge_attribs = ('entity_type','string'),\
+('accession_number','string'),\
+('cik','string')
+
+#TODO: generate vertex ids for the 'combined' dataframe
+#TODO: test graph vis
+#TODO: validate results
+nodes = combine_df(ents,filings).withColumn('id')
+edges = filings_ents.
+
+#Experiment 3: Find the persons involved with the most companies or vice vera
+v = ents.withColumn('id',ents.cik)
+e = owner_rels.withColumn('src',owner_rels.owner_cik).withColumn('dst',owner_rels.issuer_cik)
+ranks = g.degrees
+ranks = ranks.orderBy(ranks.degree.desc())
+
+node_attribs = ('cik','string'),\
+('filing_date','date'),\
+('trading_symbol','string'),\
+('entity_name','string'),\
+('irsnumber','string'),\
+('sic','string'),\
+('sic_number','string'),\
+('state_of_inc','string'),\
+('fiscal_year_end','string')
+
+edge_attribs = ('issuer_cik','string'),\
+('owner_cik','string'),\
+('filing_date','date'),\
+('isDirector','boolean'),\
+('isOfficer','boolean'),\
+('isTenPercentOwner','boolean'),\
+('isOther','boolean'),\
+('owner_officer_title','string')
+
+print(toGEFX(v,e))
+
+from datetime import datetime,timezone
+def toGEFX(v,e,node_attribs,edge_attribs,creator='Some person',description='A graph',last_modified=datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%S%z')):
+    def owner_rel_labels(edge_row):
+        return f'{edge_row.issuer_cik}-{edge_row.owner_cik}'
+    def get_attribs_dict(attrib_pairs):
+        titles = (attrib_pair[0] for attrib_pair in attrib_pairs)
+        return {attrib_title:attrib_id for attrib_id,attrib_title in enumerate(titles)}
+    def get_attribute_block(attribs,attrib_class):
+        attrib_id_dict = get_attribs_dict(attribs)
+        attribute_block=f'<attributes class="{attrib_class}">\n'
+        for attrib_title,attrib_type in attribs:
+            attribute_block+=f'\t<attribute id="{attrib_id_dict[attrib_title]}" title="{attrib_title}" type="{attrib_type}"/>\n'
+        attribute_block += '</attributes>\n'
+        return attribute_block
+    def get_nodes_block(nodes_df,attribs,id_func,label_func):
+        nodes_block = '<nodes>\n'
+        attribs_dict = get_attribs_dict(attribs)
+        for node in nodes_df.collect():
+            nodes_block+=f'\t<node id="{id_func(node)}" label="{label_func(node)}">\n'
+            nodes_block+='\t\t<attvalues>\n'
+            realkeys = (key for key in node.asDict().keys() if key not in ('id'))
+            #TODO: Add something to catch potential KeyErrors
+            for attrib_title in realkeys:
+                if node[attrib_title] != None:
+                    nodes_block+=f'\t\t\t<attvalue for="{attribs_dict[attrib_title]}" value="{node[attrib_title]}"/>\n'
+            nodes_block += '\t\t</attvalues>\n'
+            nodes_block+='\t</node>\n'
+        nodes_block += '</nodes>\n'
+        return nodes_block
+    def get_edges_block(edges_df,attribs,id_func,label_func,weight_func=None):
+        edges_block = '<edges>\n'
+        attribs_dict = get_attribs_dict(attribs)
+        for edge in edges_df.collect():
+            edges_block+= f'\t<edge id="{id_func(edge)}" source="{edge.src}" target="{edge.dst}" label="{label_func(edge)}"'
+            if weight_func:
+                edges_block+=' weight="{weight_func(edge)}"'
+            edges_block+= '>\n'
+            edges_block+='\t\t<attvalues>\n'
+            realkeys = (key for key in edge.asDict().keys() if key not in ('src','dst'))
+            for attrib_title in realkeys:
+                if edge[attrib_title] != None:
+                    edges_block+=f'\t\t\t<attvalue for="{attribs_dict[attrib_title]}" value="{edge[attrib_title]}"/>\n'
+            edges_block += '\t\t</attvalues>\n'
+            edges_block += '\t</edge>\n'
+        edges_block += '</edges>\n'
+        return edges_block
+    return f'''<?xml version="1.0" encoding="UTF-8"?>
+    <gexf xmlns="http://www.gexf.net/1.2draft" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.gexf.net/1.2draft http://www.gexf.net/1.2draft/gexf.xsd" version="1.2">
+    <meta lastmodifieddate="{last_modified}">
+        <creator>{creator}</creator>
+        <description>{description}</description>
+    </meta>  
+    <graph defaultedgetype="directed">
+    {get_attribute_block(node_attribs,'node')}
+    {get_attribute_block(edge_attribs,'edge')}
+    {get_nodes_block(v, node_attribs, lambda n:n.cik, lambda n:n.entity_name)}
+    {get_edges_block(e, edge_attribs, owner_rel_labels, owner_rel_labels)}
+    </graph>
+    </gexf>'''
