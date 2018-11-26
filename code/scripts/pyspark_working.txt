@@ -37,124 +37,143 @@ secdata.c6.cast('date').alias('change_date'))
 
 from pyspark.sql.functions import lit
 from pyspark.sql.types import NullType
-
+from re import sub
 def combine_df(one,other):
-    one_with_other = 'one.'+'.'.join((f'withColumn("{colname}",lit(None).cast(NullType()))' for colname in other.columns))
-    other_with_one = 'other.'+'.'.join((f'withColumn("{colname}",lit(None).cast(NullType()))' for colname in one.columns))
+    one_types = {colname:coltype for colname,coltype in one.dtypes}
+    other_types = {colname:coltype for colname,coltype in other.dtypes}
+    one_with_other = 'one.'+'.'.join((f'withColumn("{colname}",lit(None).cast("{other_types[colname]}"))' for colname in other.columns))
+    other_with_one = 'other.'+'.'.join((f'withColumn("{colname}",lit(None).cast("{one_types[colname]}"))' for colname in one.columns))
     one = eval(one_with_other)
     other = eval(other_with_one)
-    return one.union(other)
+    return one.unionByName(other)
 
 #Experiment 2: Examine how many trades entities are involved in
 #Could we define a mapping using a dict between dataframe types and GEFX types to render these unnecessary or greatly reduce how many need to be entered?
-node_attribs = ('cik','string'),\
-('filing_date','date'),\
-('trading_symbol','string'),\
-('entity_name','string'),\
-('irsnumber','string'),\
-('sic','string'),\
-('sic_number','string'),\
-('state_of_inc','string'),\
-('fiscal_year_end','string'),\
-('accession_number','string),\
-('submission_type','string'),\
-('document_count','int'),\
-('reporting_period','date'),\
-('change_date','date')
 
-edge_attribs = ('entity_type','string'),\
-('accession_number','string'),\
-('cik','string')
-
-#TODO: generate vertex ids for the 'combined' dataframe
 #TODO: test graph vis
 #TODO: validate results
-nodes = combine_df(ents,filings).withColumn('id')
-edges = filings_ents.
+from pyspark.sql.functions import monotonically_increasing_id 
+nodes = combine_df(ents,filings).withColumn('id',monotonically_increasing_id())
+edges = filings_ents.withColumn('src',filings_ents.accession_number).withColumn('dst',filings_ents.cik).withColumn('id',monotonically_increasing_id())
 
 #Experiment 3: Find the persons involved with the most companies or vice vera
 v = ents.withColumn('id',ents.cik)
 e = owner_rels.withColumn('src',owner_rels.owner_cik).withColumn('dst',owner_rels.issuer_cik)
-ranks = g.degrees
-ranks = ranks.orderBy(ranks.degree.desc())
-
-node_attribs = ('cik','string'),\
-('filing_date','date'),\
-('trading_symbol','string'),\
-('entity_name','string'),\
-('irsnumber','string'),\
-('sic','string'),\
-('sic_number','string'),\
-('state_of_inc','string'),\
-('fiscal_year_end','string')
-
-edge_attribs = ('issuer_cik','string'),\
-('owner_cik','string'),\
-('filing_date','date'),\
-('isDirector','boolean'),\
-('isOfficer','boolean'),\
-('isTenPercentOwner','boolean'),\
-('isOther','boolean'),\
-('owner_officer_title','string')
-
-print(toGEFX(v,e))
+#ranks = g.degrees
+#ranks = ranks.orderBy(ranks.degree.desc())
 
 from datetime import datetime,timezone
-def toGEFX(v,e,node_attribs,edge_attribs,creator='Some person',description='A graph',last_modified=datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%S%z')):
-    def owner_rel_labels(edge_row):
-        return f'{edge_row.issuer_cik}-{edge_row.owner_cik}'
-    def get_attribs_dict(attrib_pairs):
-        titles = (attrib_pair[0] for attrib_pair in attrib_pairs)
-        return {attrib_title:attrib_id for attrib_id,attrib_title in enumerate(titles)}
-    def get_attribute_block(attribs,attrib_class):
-        attrib_id_dict = get_attribs_dict(attribs)
-        attribute_block=f'<attributes class="{attrib_class}">\n'
-        for attrib_title,attrib_type in attribs:
-            attribute_block+=f'\t<attribute id="{attrib_id_dict[attrib_title]}" title="{attrib_title}" type="{attrib_type}"/>\n'
-        attribute_block += '</attributes>\n'
-        return attribute_block
-    def get_nodes_block(nodes_df,attribs,id_func,label_func):
-        nodes_block = '<nodes>\n'
-        attribs_dict = get_attribs_dict(attribs)
-        for node in nodes_df.collect():
-            nodes_block+=f'\t<node id="{id_func(node)}" label="{label_func(node)}">\n'
-            nodes_block+='\t\t<attvalues>\n'
-            realkeys = (key for key in node.asDict().keys() if key not in ('id'))
-            #TODO: Add something to catch potential KeyErrors
+from itertools import chain
+def owner_rel_labels(edge_row):
+    return f'{edge_row.issuer_cik}-{edge_row.owner_cik}'
+
+def get_attribs_dict(attrib_pairs):
+    titles = (attrib_pair[0] for attrib_pair in attrib_pairs)
+    return {attrib_title:attrib_id for attrib_id,attrib_title in enumerate(titles)}
+
+def get_attribute_block(attribs,attrib_class):
+    attrib_id_dict = get_attribs_dict(attribs)
+    attribute_block=f'<attributes class="{attrib_class}">\n'
+    for attrib_title,attrib_type in attribs:
+        attribute_block+=f'\t<attribute id="{attrib_id_dict[attrib_title]}" title="{attrib_title}" type="{attrib_type}"/>\n'
+    attribute_block += '</attributes>\n'
+    return attribute_block
+
+def get_attrib_block_from_df(df,attrib_class):
+    attrib_id_dict = get_attribs_dict(df.dtypes)
+    attribute_block=f'<attributes class="{attrib_class}">\n'
+    for attrib_title,attrib_type in df.dtypes:
+        attribute_block+=f'\t<attribute id="{attrib_id_dict[attrib_title]}" title="{attrib_title}" type="{attrib_type}"/>\n'
+    attribute_block += '</attributes>\n'
+    return attribute_block
+
+def get_nodes_block(nodes_df,attribs,id_func,label_func):
+    nodes_block = '<nodes>\n'
+    attribs_dict = get_attribs_dict(attribs)
+    for node in nodes_df.collect():
+        nodes_block+=f'\t<node id="{id_func(node)}" label="{label_func(node)}">\n'
+        nodes_block+='\t\t<attvalues>\n'
+        realkeys = (key for key in node.asDict().keys() if key not in ('id'))
+        try:
             for attrib_title in realkeys:
                 if node[attrib_title] != None:
                     nodes_block+=f'\t\t\t<attvalue for="{attribs_dict[attrib_title]}" value="{node[attrib_title]}"/>\n'
-            nodes_block += '\t\t</attvalues>\n'
-            nodes_block+='\t</node>\n'
-        nodes_block += '</nodes>\n'
-        return nodes_block
-    def get_edges_block(edges_df,attribs,id_func,label_func,weight_func=None):
-        edges_block = '<edges>\n'
-        attribs_dict = get_attribs_dict(attribs)
-        for edge in edges_df.collect():
-            edges_block+= f'\t<edge id="{id_func(edge)}" source="{edge.src}" target="{edge.dst}" label="{label_func(edge)}"'
-            if weight_func:
-                edges_block+=' weight="{weight_func(edge)}"'
-            edges_block+= '>\n'
-            edges_block+='\t\t<attvalues>\n'
-            realkeys = (key for key in edge.asDict().keys() if key not in ('src','dst'))
-            for attrib_title in realkeys:
-                if edge[attrib_title] != None:
-                    edges_block+=f'\t\t\t<attvalue for="{attribs_dict[attrib_title]}" value="{edge[attrib_title]}"/>\n'
-            edges_block += '\t\t</attvalues>\n'
-            edges_block += '\t</edge>\n'
-        edges_block += '</edges>\n'
-        return edges_block
-    return f'''<?xml version="1.0" encoding="UTF-8"?>
+        except KeyError as e:
+            print(f'Attribute {e} is either not in dataframe.dtypes or could not be found in attribs_dict')
+            raise e
+        nodes_block += '\t\t</attvalues>\n'
+        nodes_block+='\t</node>\n'
+    nodes_block += '</nodes>\n'
+    return nodes_block
+
+def get_edges_block(edges_df,attribs,id_func,label_func,weight_func=None):
+    edges_block = '<edges>\n'
+    attribs_dict = get_attribs_dict(attribs)
+    for edge in edges_df.collect():
+        edges_block+= f'\t<edge id="{id_func(edge)}" source="{edge.src}" target="{edge.dst}" label="{label_func(edge)}"'
+        if weight_func:
+            edges_block+=' weight="{weight_func(edge)}"'
+        edges_block+= '>\n'
+        edges_block+='\t\t<attvalues>\n'
+        realkeys = (key for key in edge.asDict().keys() if key not in ('src','dst','id'))
+        for attrib_title in realkeys:
+            if edge[attrib_title] != None:
+                edges_block+=f'\t\t\t<attvalue for="{attribs_dict[attrib_title]}" value="{edge[attrib_title]}"/>\n'
+        edges_block += '\t\t</attvalues>\n'
+        edges_block += '\t</edge>\n'
+    edges_block += '</edges>\n'
+    return edges_block
+
+def defaultId(row):
+    return row['id']
+
+def defaultLabel(dont_care):
+    return ''
+
+def toGEFX(v,e,
+edge_type='undirected',
+node_attribs=None,
+edge_attribs=None,
+creator='Some person',
+description='A graph',
+last_modified=datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%S%z'),
+node_id_func=defaultId,
+node_label_func=defaultLabel,
+edge_id_func=defaultId,
+edge_label_func=defaultLabel,
+weight_func=None):
+    _GEPHI_DATATYPE_NAMES = {'integer':'integer','int':'integer','bigint':'integer','double':'double', 'float':'float',  'boolean':'boolean',  'string':'string', 'date':'date'}
+    if not node_attribs:
+        node_attribs = v.dtypes
+    if not edge_attribs:
+        edge_attribs = e.dtypes
+    if 'id' not in e.columns:
+        e = e.withColumn('id',monotonically_increasing_id())
+    try:
+        for attrib_pair in chain(node_attribs,edge_attribs):
+            #print(attrib_pair)
+            _GEPHI_DATATYPE_NAMES[attrib_pair[1]]
+    except KeyError as e:
+        print(f'Datatype {e} given in dataframe is not valid for GEFX')
+        raise e
+    xml =  f'''<?xml version="1.0" encoding="UTF-8"?>
     <gexf xmlns="http://www.gexf.net/1.2draft" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.gexf.net/1.2draft http://www.gexf.net/1.2draft/gexf.xsd" version="1.2">
     <meta lastmodifieddate="{last_modified}">
         <creator>{creator}</creator>
         <description>{description}</description>
     </meta>  
-    <graph defaultedgetype="directed">
+    <graph defaultedgetype="{edge_type}">
     {get_attribute_block(node_attribs,'node')}
     {get_attribute_block(edge_attribs,'edge')}
-    {get_nodes_block(v, node_attribs, lambda n:n.cik, lambda n:n.entity_name)}
-    {get_edges_block(e, edge_attribs, owner_rel_labels, owner_rel_labels)}
+    {get_nodes_block(v, node_attribs, node_id_func, node_label_func)}
+    {get_edges_block(e, edge_attribs, edge_id_func, edge_label_func,weight_func=weight_func)}
     </graph>
     </gexf>'''
+    return sub('&','&amp;',xml)
+
+g2 = toGEFX(nodes,edges)
+g3 = toGEFX(v,e)
+with open('ex2.gexf','w') as ex2,open('ex3.gexf','w') as ex3:
+    ex2.write(g2)
+    ex3.write(g3)
+
