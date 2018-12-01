@@ -10,7 +10,7 @@ class SECDict(dict):
         return ""
     
 def toDate(str):
-    if len(str) > 0:
+    if len(str) == 8:
         return str[0:4]+'-'+str[4:6]+'-'+str[6:8]
     else:
         return "1990-01-01"
@@ -87,27 +87,27 @@ class SECFiling:
                                     rptOwnerOfficerTitle ])
                 elif name == 'isDirector':
                     if currentData == 'true':
-                        currentData = 1
+                        currentData = '1'
                     elif currentData == 'false':
-                        currentData = 0
+                        currentData = '0'
                     rptOwnerIsDirector        = currentData
                 elif name == 'isOfficer':
                     if currentData == 'true':
-                        currentData = 1
+                        currentData = '1'
                     elif currentData == 'false':
-                        currentData = 0
+                        currentData = '0'
                     rptOwnerIsOfficer         = currentData
                 elif name == 'isTenPercentOwner':
                     if currentData == 'true':
-                        currentData = 1
+                        currentData = '1'
                     elif currentData == 'false':
-                        currentData = 0
+                        currentData = '0'
                     rptOwnerIsTenPercentOwner = currentData
                 elif name == 'isOther':
                     if currentData == 'true':
-                        currentData = 1
+                        currentData = '1'
                     elif currentData == 'false':
-                        currentData = 0
+                        currentData = '0'
                     rptOwnerIsOther           = currentData
                 elif name == 'officerTitle':
                     rptOwnerOfficerTitle      = currentData
@@ -163,8 +163,11 @@ class SECFiling:
                 xmlParser.StartElementHandler  = startElement
                 xmlParser.CharacterDataHandler = charData
                 xmlParser.EndElementHandler    = endElement
-                xmlParser.Parse( xmlContent )
-            
+                try:
+                    xmlParser.Parse( xmlContent )
+                except TypeError as inst:
+                    sys.stderr.write("XML parsing error for {0}: {1}\n".format(f,str(inst)))
+                    
             tags = [
                 ('description',  r'<DESCRIPTION>'),
                 ('filename',     r'<FILENAME>'),
@@ -243,6 +246,8 @@ class SECFiling:
                 ('state',           r'STATE:'),
                 ('stateOfInc',      r'STATE OF INCORPORATION:'),
                 ('street1',         r'STREET 1:'),
+                ('street2',         r'STREET 2:'),
+                ('street3',         r'STREET 3:'),
                 ('submissionType',  r'CONFORMED SUBMISSION TYPE:'),
                 ('tradingSymbol',   r'TRADING SYMBOL:'),
                 ('zip',             r'ZIP:'),
@@ -261,7 +266,7 @@ class SECFiling:
                 kind     = mo.lastgroup
                 startLoc = mo.end()
                 v        = mo.group(0)
-                print("parseHeader: state:"+str(state)+"  kind="+kind+"  lastkind="+lastkind+"  v="+v+"  startLoc = "+str(startLoc)) # +": ("+hdrContent[startLoc:(startLoc+20)]+")")
+#                print("parseHeader: state:"+str(state)+"  kind="+kind+"  lastkind="+lastkind+"  v="+v+"  startLoc = "+str(startLoc)) # +": ("+hdrContent[startLoc:(startLoc+20)]+")")
                 
                 if accessionNumber == None and 'accessionNumber' in values:
                     accessionNumber = values.get('accessionNumber')
@@ -294,64 +299,67 @@ class SECFiling:
                                          values.pop('fiscalYearEnd','')]]
                             elif state == 13:
                                 state = 14
-                                yield [['contacts',
-                                        issueCik,
-                                        filingDate,
-                                        'issuer-mail',
-                                        values.get('street1',''),
-                                        values.get('street2',''),
-                                        values.get('street3',''),
-                                        values.get('city',''),
-                                        values.get('state',''),
-                                        values.get('zip',''),
-                                        values.get('phone','')]]
+                                if values.get('city'):
+                                    yield [['contacts',
+                                            issueCik,
+                                            filingDate,
+                                            'issuer-mail',
+                                            values.get('street1',''),
+                                            values.get('street2',''),
+                                            values.get('street3',''),
+                                            values.get('city',''),
+                                            values.get('state',''),
+                                            values.get('zip',''),
+                                            values.get('phone','')]]
                     elif state == 20:
                         state = 21
                     elif state == 22:
                         state = 23
-                        yield [['contacts',
-                                ownerCik,
-                                filingDate,
-                                'owner-business',
-                                values.get('street1',''),
-                                values.get('street2',''),
-                                values.get('street3',''),
-                                values.get('city',''),
-                                values.get('state',''),
-                                values.get('zip',''),
-                                values.get('phone','')]]
+                        if values.get('city'):
+                            yield [['contacts',
+                                    ownerCik,
+                                    filingDate,
+                                    'owner-business',
+                                    values.get('street1',''),
+                                    values.get('street2',''),
+                                    values.get('street3',''),
+                                    values.get('city',''),
+                                    values.get('state',''),
+                                    values.get('zip',''),
+                                    values.get('phone','')]]
                     elif state == 24:
-                        yield [['contacts',
-                                ownerCik,
-                                filingDate,
-                                'owner-mail',
-                                values.get('street1',''),
-                                values.get('street2',''),
-                                values.get('street3',''),
-                                values.get('city',''),
-                                values.get('state',''),
-                                values.get('zip',''),
-                                values.get('phone','')]]
+                        if values.get('city'):
+                            yield [['contacts',
+                                    ownerCik,
+                                    filingDate,
+                                    'owner-mail',
+                                    values.get('street1',''),
+                                    values.get('street2',''),
+                                    values.get('street3',''),
+                                    values.get('city',''),
+                                    values.get('state',''),
+                                    values.get('zip',''),
+                                    values.get('phone','')]]
                 elif kind == 'filingData':
-#                    if state == 10
-#                    state = 22
                     ownerCik = values.get('cik')
                     ownerName = values.get('companyName')
-                    if accessionNumber and ownerCik and ownerName:
-                        yield [[ 'filings_entities',
-                                 accessionNumber,
-                                 ownerCik,
-                                 'owner'],
-                               [ 'entities',
-                                 ownerCik,
-                                 filingDate,
-                                 '',
-                                 ownerName,
-                                 '',
-                                 '',
-                                 '',
-                                 '',
-                                 '']]
+                    if state >= 20:
+#                    state = 22
+                        if accessionNumber and ownerCik and ownerName:
+                            yield [[ 'filings_entities',
+                                     accessionNumber,
+                                     ownerCik,
+                                     'owner'],
+                                   [ 'entities',
+                                     ownerCik,
+                                     filingDate,
+                                     '',
+                                     ownerName,
+                                     '',
+                                     '',
+                                     '',
+                                     '',
+                                     '']]
                 elif kind == 'issuer' or kind == 'issuer1':
                     if state == 0:
                         state = 10
@@ -367,12 +375,12 @@ class SECFiling:
                         
                     elif state >= 20 and state < 30:
                         if state == 24:
-                            ownerType = 'owner-mailA'
+                            ownerType = 'owner-mail'
                         else:
-                            ownerType = 'owner-business-'+str(state)
+                            ownerType = 'owner-business'
                         state = 10
                         ownerCik = values.get('cik')
-                        if ownerCik and filingDate:
+                        if ownerCik and filingDate and values.get('city'):
                             yield [['contacts',
                                     ownerCik,
                                     filingDate,
@@ -384,6 +392,7 @@ class SECFiling:
                                     values.get('state',''),
                                     values.get('zip',''),
                                     values.get('phone','')]]
+                    ownerName = None
                 elif kind == 'mailAddress':
                     cik = values.get('cik')
 
@@ -415,58 +424,62 @@ class SECFiling:
                                          values.pop('fiscalYearEnd','')]]
                             elif state == 12:
                                 state = 14
-                                yield [['contacts',
-                                        issuerCik,
-                                        filingDate,
-                                        'issuer-business',
-                                        values.get('street1',''),
-                                        values.get('street2',''),
-                                        values.get('street3',''),
-                                        values.get('city',''),
-                                        values.get('state',''),
-                                        values.get('zip',''),
-                                        values.get('phone','')]]
+                                if values.get('city'):
+                                    yield [['contacts',
+                                            issuerCik,
+                                            filingDate,
+                                            'issuer-business',
+                                            values.get('street1',''),
+                                            values.get('street2',''),
+                                            values.get('street3',''),
+                                            values.get('city',''),
+                                            values.get('state',''),
+                                            values.get('zip',''),
+                                            values.get('phone','')]]
                     elif state == 21:
                         state = 24
-                        yield [['contacts',
-                                ownerCik,
-                                filingDate,
-                                'owner-business',
-                                values.get('street1',''),
-                                values.get('street2',''),
-                                values.get('street3',''),
-                                values.get('city',''),
-                                values.get('state',''),
-                                values.get('zip',''),
-                                values.get('phone','')]]
+                        if values.get('city'):
+                            yield [['contacts',
+                                    ownerCik,
+                                    filingDate,
+                                    'owner-business',
+                                    values.get('street1',''),
+                                    values.get('street2',''),
+                                    values.get('street3',''),
+                                    values.get('city',''),
+                                    values.get('state',''),
+                                    values.get('zip',''),
+                                    values.get('phone','')]]
                         
                 elif kind == 'reportingOwner':
                     if state == 14:
                         state = 20
-                        yield [['contacts',
-                                issuerCik,
-                                filingDate,
-                                'issuer-mail',
-                                values.get('street1',''),
-                                values.get('street2',''),
-                                values.get('street3',''),
-                                values.get('city',''),
-                                values.get('state',''),
-                                values.get('zip',''),
-                                values.get('phone','')]]
+                        if values.get('city'):
+                            yield [['contacts',
+                                    issuerCik,
+                                    filingDate,
+                                    'issuer-mail',
+                                    values.get('street1',''),
+                                    values.get('street2',''),
+                                    values.get('street3',''),
+                                    values.get('city',''),
+                                    values.get('state',''),
+                                    values.get('zip',''),
+                                    values.get('phone','')]]
                     elif state == 13:
                         state = 20
-                        yield [['contacts',
-                                issuerCik,
-                                filingDate,
-                                'issuer-business',
-                                values.get('street1',''),
-                                values.get('street2',''),
-                                values.get('street3',''),
-                                values.get('city',''),
-                                values.get('state',''),
-                                values.get('zip',''),
-                                values.get('phone','')]]
+                        if values.get('city'):
+                            yield [['contacts',
+                                    issuerCik,
+                                    filingDate,
+                                    'issuer-business',
+                                    values.get('street1',''),
+                                    values.get('street2',''),
+                                    values.get('street3',''),
+                                    values.get('city',''),
+                                    values.get('state',''),
+                                    values.get('zip',''),
+                                    values.get('phone','')]]
                     elif state == 0:
                         state = 20
                         filingDate = toDate(values.get('filingDate',''))
@@ -485,11 +498,11 @@ class SECFiling:
             if state == 12:
                 state = 0
                 cik = values.get('cik')
-                if cik and filingDate:
+                if cik and filingDate and values.get('city'):
                     yield [['contacts',
                             cik,
                             filingDate,
-                            'issuer-mailA',
+                            'issuer-mail',
                             values.get('street1',''),
                             values.get('street2',''),
                             values.get('street3',''),
@@ -500,11 +513,11 @@ class SECFiling:
             elif state == 14:
                 state = 0
                 cik = values.get('cik')
-                if cik and filingDate:
+                if cik and filingDate and values.get('city'):
                     yield [['contacts',
                             cik,
                             filingDate,
-                            'issuer-mailA',
+                            'issuer-mail',
                             values.get('street1',''),
                             values.get('street2',''),
                             values.get('street3',''),
@@ -515,11 +528,11 @@ class SECFiling:
             elif state == 22:
                 state = 0
                 cik = values.get('cik')
-                if cik and filingDate:
+                if cik and filingDate and values.get('city'):
                     yield [['contacts',
                             cik,
                             filingDate,
-                            'owner-mailA',
+                            'owner-mail',
                             values.get('street1',''),
                             values.get('street2',''),
                             values.get('street3',''),
@@ -530,11 +543,11 @@ class SECFiling:
             elif state == 24:
                 state = 0
                 cik = values.get('cik')
-                if cik and filingDate:
+                if cik and filingDate and values.get('city'):
                     yield [['contacts',
                             cik,
                             filingDate,
-                            'owner-businessA',
+                            'owner-mail',
                             values.get('street1',''),
                             values.get('street2',''),
                             values.get('street3',''),
