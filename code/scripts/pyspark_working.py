@@ -1,3 +1,12 @@
+from pyspark.sql.functions import lit
+from pyspark.sql.types import NullType
+from re import sub
+from datetime import datetime,timezone
+from itertools import chain,count
+from pyspark.sql.functions import monotonically_increasing_id 
+from graphframes.graphframe import GraphFrame
+
+spark.sql('SET spark.sql.crossJoin.enabled=true')
 _colnames = ",".join(("c{} STRING".format(i) for i in range(0,10)))
 secdata = spark.read.csv('stocks.data',sep="|",schema=_colnames)
 
@@ -46,16 +55,11 @@ secdata.c7.alias('city'),
 secdata.c8.alias('state'),
 secdata.c9.alias('zipcode'))
 
-from pyspark.sql.functions import lit
-from pyspark.sql.types import NullType
-from re import sub
-from datetime import datetime,timezone
-from itertools import chain
 def combine_df(one,other):
     one_types = {colname:coltype for colname,coltype in one.dtypes}
     other_types = {colname:coltype for colname,coltype in other.dtypes}
-    one_with_other = 'one.'+'.'.join((f'withColumn("{colname}",lit(None).cast("{other_types[colname]}"))' for colname in other.columns))
-    other_with_one = 'other.'+'.'.join((f'withColumn("{colname}",lit(None).cast("{one_types[colname]}"))' for colname in one.columns))
+    one_with_other = 'one.'+'.'.join((f'withColumn("{colname}",lit(None).cast("{other_types[colname]}"))' for colname in other.columns if colname not in one.columns))
+    other_with_one = 'other.'+'.'.join((f'withColumn("{colname}",lit(None).cast("{one_types[colname]}"))' for colname in one.columns if colname not in other.columns))
     one = eval(one_with_other)
     other = eval(other_with_one)
     return one.unionByName(other)
@@ -167,11 +171,18 @@ weight_func=None):
     </gexf>'''
     return sub('&','&amp;',xml)
 
-e_owners_rels = owner_rels.withColumn('src',owner_rels.owner_cik).withColumn('dst',owner_rels.issuer_cik)
 
-e_filings_ents = filings_ents.withColumn('src',filings_ents.accession_number).withColumn('dst',filings_ents.cik).withColumn('id',monotonically_increasing_id())
 v = combine_df(ents,filings).withColumn('id',monotonically_increasing_id())
-e = combine_df(e_owners_rels,e_filings_ents)
+f = filings_ents
+r = owner_rels
+cik_id = v.select(v.cik,v.id.alias('src')).where(v.cik.isNotNull())
+acc_id = v.select(v.accession_number,v.id.alias('dst')).where(v.accession_number.isNotNull())
+e_filings_ents = f.join(cik_id,'cik').join(acc_id,'accession_number')
+issuer_cik_id = cik_id.withColumnRenamed('cik','issuer_cik').withColumnRenamed('src','dst')
+e_owner_rels = r.join(cik_id.withColumnRenamed('cik','owner_cik'),'owner_cik').join(issuer_cik_id,'issuer_cik')
+e = combine_df(e_owner_rels,e_filings_ents).withColumnRenamed('cik','filer_cik')
+
+g.degrees.orderBy('degree',ascending=false).show()
 
 ############################## old stuff below #############################
 g2 = toGEFX(nodes,edges)
@@ -183,9 +194,6 @@ with open('ex2.gexf','w') as ex2,open('ex3.gexf','w') as ex3:
 #Experiment 2: Examine how many trades entities are involved in
 #Could we define a mapping using a dict between dataframe types and GEFX types to render these unnecessary or greatly reduce how many need to be entered?
 
-#TODO: test graph vis
-#TODO: validate results
-from pyspark.sql.functions import monotonically_increasing_id 
 nodes = combine_df(ents,filings).withColumn('id',monotonically_increasing_id())
 edges = filings_ents.withColumn('src',filings_ents.accession_number).withColumn('dst',filings_ents.cik).withColumn('id',monotonically_increasing_id())
 

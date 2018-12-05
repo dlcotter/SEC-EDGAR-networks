@@ -1,56 +1,9 @@
-_colnames = ",".join(("c{} STRING".format(i) for i in range(0,10)))
-secdata = spark.read.csv('stocks.data',sep="|",schema=_colnames)
-
-owner_rels = secdata.filter(secdata.c0 == 'owner_rels').\
-select(secdata.c1.alias('issuer_cik'),
-secdata.c2.alias('owner_cik'),
-secdata.c3.cast('date').alias('filing_date'),
-secdata.c4.cast('boolean').alias('isDirector'),
-secdata.c5.cast('boolean').alias('isOfficer'),
-secdata.c6.cast('boolean').alias('isTenPercentOwner'),
-secdata.c7.cast('boolean').alias('isOther'),
-secdata.c8.alias('owner_officer_title'))
-
-ents = secdata.filter(secdata.c0 == 'entities').\
-select(secdata.c1.alias('cik'),
-secdata.c2.alias('filing_date').cast('date'),
-secdata.c3.alias('trading_symbol'),
-secdata.c4.alias('entity_name'),
-secdata.c5.alias('irsnumber'),
-secdata.c6.alias('sic'),
-secdata.c7.alias('sic_number'),
-secdata.c8.alias('state_of_inc'),
-secdata.c9.alias('fiscal_year_end'))
-
-filings_ents = secdata.filter(secdata.c0 == 'filings_entities').\
-select(secdata.c1.alias('accession_number'),
-secdata.c2.alias('cik'),
-secdata.c3.alias('entity_type'))
-
-filings = secdata.filter(secdata.c0 == 'filings').\
-select(secdata.c1.alias('accession_number'),
-secdata.c2.alias('submission_type'),
-secdata.c3.alias('document_count').cast('int'),
-secdata.c4.cast('date').alias('reporting_period'),
-secdata.c5.cast('date').alias('filing_date'),
-secdata.c6.cast('date').alias('change_date'))
-
-contacts= secdata.filter(secdata.c0 == 'contacts').\
-select(secdata.c1.alias('cik'),
-secdata.c2.alias('filing_data').cast('date'),
-secdata.c3.alias('entity_type'),
-secdata.c4.alias('street'),
-secdata.c5.alias('extra_1'),
-secdata.c6.alias('extra_2'),
-secdata.c7.alias('city'),
-secdata.c8.alias('state'),
-secdata.c9.alias('zipcode'))
-
 from pyspark.sql.functions import lit
 from pyspark.sql.types import NullType
 from re import sub
 from datetime import datetime,timezone
 from itertools import chain
+
 def combine_df(one,other):
     one_types = {colname:coltype for colname,coltype in one.dtypes}
     other_types = {colname:coltype for colname,coltype in other.dtypes}
@@ -166,32 +119,4 @@ weight_func=None):
     </graph>
     </gexf>'''
     return sub('&','&amp;',xml)
-
-e_owners_rels = owner_rels.withColumn('src',owner_rels.owner_cik).withColumn('dst',owner_rels.issuer_cik)
-
-e_filings_ents = filings_ents.withColumn('src',filings_ents.accession_number).withColumn('dst',filings_ents.cik).withColumn('id',monotonically_increasing_id())
-v = combine_df(ents,filings).withColumn('id',monotonically_increasing_id())
-e = combine_df(e_owners_rels,e_filings_ents)
-
-############################## old stuff below #############################
-g2 = toGEFX(nodes,edges)
-g3 = toGEFX(v,e)
-with open('ex2.gexf','w') as ex2,open('ex3.gexf','w') as ex3:
-    ex2.write(g2)
-    ex3.write(g3)
-
-#Experiment 2: Examine how many trades entities are involved in
-#Could we define a mapping using a dict between dataframe types and GEFX types to render these unnecessary or greatly reduce how many need to be entered?
-
-#TODO: test graph vis
-#TODO: validate results
-from pyspark.sql.functions import monotonically_increasing_id 
-nodes = combine_df(ents,filings).withColumn('id',monotonically_increasing_id())
-edges = filings_ents.withColumn('src',filings_ents.accession_number).withColumn('dst',filings_ents.cik).withColumn('id',monotonically_increasing_id())
-
-#Experiment 3: Find the persons involved with the most companies or vice vera
-v = ents.withColumn('id',ents.cik)
-e = owner_rels.withColumn('src',owner_rels.owner_cik).withColumn('dst',owner_rels.issuer_cik)
-#ranks = g.degrees
-#ranks = ranks.orderBy(ranks.degree.desc())
 
