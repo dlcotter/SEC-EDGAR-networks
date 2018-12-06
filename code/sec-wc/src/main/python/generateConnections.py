@@ -117,7 +117,7 @@ def generateConnections(spark):
 #    owner_relsTable.rdd.saveAsTextFile("owner_rels.text")
 
     transactions = spark.sql("SELECT issuerCik,filingDate,rptOwnerCik FROM owner_rels ORDER BY issuerCik,filingDate,rptOwnerCik " )
-    connections  = transactions.rdd.filter(lambda t: selectConnection(t)).flatten()
+    connections  = transactions.rdd.filter(lambda t: selectConnection(t)).collect()
     connections.saveAsTextFile("connections.rdd")
 
 if __name__ == "__main__":
