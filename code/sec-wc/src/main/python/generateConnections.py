@@ -36,7 +36,7 @@ def generateConnections(spark):
     sc = spark.sparkContext
 
     # entities
-    lines = sc.textFile("entities.table"),filingDate
+    lines = sc.textFile("entities.table")
     fields = lines.map(lambda l: l.split('|'))
     entities = fields.map(lambda f: Row(cik        = f[1],
                                         filingDate = f[2],
