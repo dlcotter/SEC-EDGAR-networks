@@ -116,7 +116,7 @@ def generateConnections(spark):
     owner_relsTable.createOrReplaceTempView("owner_rels")
 #    owner_relsTable.rdd.saveAsTextFile("owner_rels.text")
 
-    transactions = spark.sql("SELECT issuerCik,filingDate,rptOwnerCik FROM owner_rels ORDER BY issuerCik,filingDate,rtpOwnerCik " )
+    transactions = spark.sql("SELECT issuerCik,filingDate,rptOwnerCik FROM owner_rels ORDER BY issuerCik,filingDate,rptOwnerCik " )
     connections  = transactions.rdd.filter(lambda t: selectConnection(t)).flatten()
     connections.saveAsTextFile("connections.rdd")
 
