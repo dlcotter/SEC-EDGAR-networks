@@ -173,11 +173,12 @@ def load_SEC_data(spark):
         print(n)
 
 
-    answers = spark.sql("SELECT A.accessionNumber, A.reportingDate, C.name, B.role, E.name, D.role FROM filings A INNER JOIN filings_entities B ON B.accessionNumber = A.accessionNumber INNER JOIN entities C ON C.cik = B.cik AND C.filingDate = A.filingDate INNER JOIN filings_entities D on D.accessionNumber = A.accessionNumber INNER JOIN entities E on E.cik = D.cik and E.filingDate = A.filingDate WHERE E.cik != C.cik ORDER BY A.accessionNumber, A.reportingDate" )
-    print("Accession Numbers with owners and roles")
-    numAns = answers.rdd.map(lambda p: str(p)).collect()
-    for n in numAns:
-        print(n)
+#  The following crashes the Executor processes with out of memory error
+#    answers = spark.sql("SELECT A.accessionNumber, A.reportingDate, C.name, B.role, E.name, D.role FROM filings A INNER JOIN filings_entities B ON B.accessionNumber = A.accessionNumber INNER JOIN entities C ON C.cik = B.cik AND C.filingDate = A.filingDate INNER JOIN filings_entities D on D.accessionNumber = A.accessionNumber INNER JOIN entities E on E.cik = D.cik and E.filingDate = A.filingDate WHERE E.cik != C.cik ORDER BY A.accessionNumber, A.reportingDate" )
+#    print("Accession Numbers with owners and roles")
+#    numAns = answers.rdd.map(lambda p: str(p)).collect()
+#    for n in numAns:
+#        print(n)
 
 
 
