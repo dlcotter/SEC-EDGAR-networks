@@ -15,6 +15,8 @@ prevOwwner = ''
 connections = {}
 
 def selectConnection(transaction):
+    nonlocal issuerCik,prevOwner,connections
+    
     if transaction.issuerCik != issuerCik:
         connections = set()
         issuerCik = transaction.issuerCik
