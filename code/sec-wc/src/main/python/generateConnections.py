@@ -42,6 +42,7 @@ def selectConnection(transaction):
 def generateConnections(spark):
     sc = spark.sparkContext
 
+    ofile = open("connections.rdd","w")
     # owner_rels
     lines = sc.textFile("owner_rels.table")
     fields = lines.map(lambda l: l.split('|'))
