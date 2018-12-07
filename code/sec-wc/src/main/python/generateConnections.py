@@ -11,40 +11,33 @@ from pyspark.sql import SparkSession
 from pyspark.sql import Row
 from pyspark.sql.types import *
 
-issuerCik = ''
-prevOwwner = ''
-connections = {}
+def selectConnection(trans_issuer_t):
+    issuerCik = trans_issuer_t[0]
+    transactions = trans_issuer_t[1]
+    prevOwner = ''
+    connections = {}
+    returnRDD = []
+    
+    for t in transactions:
+        if t.rptOwnerCik in connections:
+            for otherOwner in connections[t.rptOwnerCik]:
+                if otherOwner < t.rptOwnerCik:
+                    returnRDD.append(Row(issuer=issuerCik,owner1=otherOwner,owner2=t.rptOwnerCik))
+                else:
+                    returnRDD.append(Row(issuer=issuerCik,owner1=t.rptOwnerCik,owner2=otherOwner))
+            connections[t.rptOwnerCik].clear()
+        else:
+            for key in connections:
+                connections[key].add(t.rptOwnerCik)
+            connections[t.rptOwnerCik] = set()
+    return returnRDD
 
-def selectConnection(transaction):
-    global issuerCik,prevOwner,connections
-    
-    if transaction.issuerCik != issuerCik:
-        connections = {} 
-        issuerCik = transaction.issuerCik
-    ownerCik = transaction.rptOwnerCik
-    if ownerCik in connections:
-        returnRDD = []
-        for otherOwner in connections[ownerCik]:
-            if otherOwner < ownerCik:
-                returnRDD.append(Row(issuer=issuerCik,owner1=otherOwner,owner2=ownerCik))
-#                print(issuerCik+"|"+otherOwner+"|"+ownerCik)
-            else:
-                returnRDD.append(Row(issuer=issuerCik,owner1=ownerCik,owner2=otherOwner))
-#                print(issuerCik+"|"+transaction.rptOwnerCik+"|"+otherOwner)
-        connections[ownerCik].clear()
-        return returnRDD
-    else:
-        for key in connections:
-            connections[key].add(transaction.rptOwnerCik)
-        connections[transaction.rptOwnerCik] = set()
-        return []
-    
 def generateConnections(spark):
     sc = spark.sparkContext
 
     ofile = open("connections.rdd","w")
     # owner_rels
-    lines = sc.textFile("owner_rels.table")
+    lines = sc.textFile("owner_rels_1000.table")
     fields = lines.map(lambda l: l.split('|'))
     owner_rels = fields.map(lambda f: Row(issuerCik    = f[1],
                                           rptOwnerCik  = f[2],
@@ -67,10 +60,8 @@ def generateConnections(spark):
 #    owner_relsTable.rdd.saveAsTextFile("owner_rels.text")
 
     transactions = spark.sql("SELECT issuerCik,filingDate,rptOwnerCik FROM owner_rels ORDER BY issuerCik,filingDate,rptOwnerCik " )
-    for t in transactions.take(10):
-        ofile.write("T: "+str(r)+"\n")
-        
-    connections  = transactions.rdd.flatMap(lambda t: selectConnection(t)).collect()
+    txByIssuer  = transactions.rdd.groupBy(lambda t: t.issuerCik)
+    connections = txByIssuer.map(lambda t: selectConnection(t)).collect()
     for r in connections:
       ofile.write(str(r)+"\n")
     ofile.close()
