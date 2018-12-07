@@ -37,7 +37,7 @@ def selectConnection(transaction):
         for key in connections:
             connections[key].add(transaction.rptOwnerCik)
         connections[transaction.rptOwnerCik] = set()
-        return None
+        return []
     
 def generateConnections(spark):
     sc = spark.sparkContext
