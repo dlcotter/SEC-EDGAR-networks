@@ -67,6 +67,9 @@ def generateConnections(spark):
 #    owner_relsTable.rdd.saveAsTextFile("owner_rels.text")
 
     transactions = spark.sql("SELECT issuerCik,filingDate,rptOwnerCik FROM owner_rels ORDER BY issuerCik,filingDate,rptOwnerCik " )
+    for t in transactions.take(10):
+        ofile.write("T: "+str(r)+"\n")
+        
     connections  = transactions.rdd.flatMap(lambda t: selectConnection(t)).collect()
     for r in connections:
       ofile.write(str(r)+"\n")
