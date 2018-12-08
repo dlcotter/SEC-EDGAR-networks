@@ -9,6 +9,7 @@ from csv import writer
 from pyspark.sql import SparkSession
 from pyspark.sql import Row
 from pyspark.sql.types import *
+import sys
 
 def selectConnection(trans_issuer_t):
     issuerCik = trans_issuer_t[0]
@@ -31,11 +32,11 @@ def selectConnection(trans_issuer_t):
             connections[t.rptOwnerCik] = set()
     return returnRDD
 
-def generateConnections(spark):
+def generateConnections(spark, inFile):
     sc = spark.sparkContext
 
     # owner_rels
-    lines = sc.textFile("owner_rels_1000.table")
+    lines = sc.textFile(inFile)
     fields = lines.map(lambda l: l.split('|'))
     owner_rels = fields.map(lambda f: Row(issuerCik    = f[1],
                                           rptOwnerCik  = f[2],
@@ -59,9 +60,9 @@ def generateConnections(spark):
 
     transactions = spark.sql("SELECT issuerCik,filingDate,rptOwnerCik FROM owner_rels ORDER BY issuerCik,filingDate,rptOwnerCik " )
     # group transactions by issuer, returring an dict with issueCik as key
-    txByIssuer  = transactions.rdd.groupBy(lambda t: t.issuerCik)
+    txByIssuer  = sc.parallelize(transactions).rdd.groupBy(lambda t: t.issuerCik)
     # iterate over groups of transactions finding connections
-    cxs = txByIssuer.flatMap(lambda t: selectConnection(t)).collect()
+    cxs = sc.parallelize(txByIssuer).flatMap(lambda t: selectConnection(t)).collect()
     # collect the connections
     connections = []
     for c in cxs:
@@ -76,8 +77,16 @@ if __name__ == "__main__":
         .getOrCreate()
     # $example off:init_session$
     #   .config("spark.some.config.option", "some-value") \
-
-    connections = generateConnections(spark)
+    
+    if len(sys.argv) > 1:
+        inFile = sys.argv[1]
+    else:
+        inFile = "owner_rels.table"
+    if len(sys.argv) > 2:
+        outFile = sys.argv[2]
+    else:
+        outFile = "connections.table"
+    connections = generateConnections(spark,inFile)
     with open("connections.table","w") as ofile:
         csvwriter = writer(ofile, delimiter='|')
         csvwriter.writerows(connections)
