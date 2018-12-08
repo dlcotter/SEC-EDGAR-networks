@@ -5,8 +5,7 @@ Generate connections from the owner_rels table.
 from __future__ import print_function
 
 # from io.TextIOBase import *
-from os.path import expanduser, join, abspath
-
+from csv import writer
 from pyspark.sql import SparkSession
 from pyspark.sql import Row
 from pyspark.sql.types import *
@@ -35,7 +34,6 @@ def selectConnection(trans_issuer_t):
 def generateConnections(spark):
     sc = spark.sparkContext
 
-    ofile = open("connections.rdd","w")
     # owner_rels
     lines = sc.textFile("owner_rels_1000.table")
     fields = lines.map(lambda l: l.split('|'))
@@ -60,11 +58,15 @@ def generateConnections(spark):
 #    owner_relsTable.rdd.saveAsTextFile("owner_rels.text")
 
     transactions = spark.sql("SELECT issuerCik,filingDate,rptOwnerCik FROM owner_rels ORDER BY issuerCik,filingDate,rptOwnerCik " )
+    # group transactions by issuer, returring an dict with issueCik as key
     txByIssuer  = transactions.rdd.groupBy(lambda t: t.issuerCik)
-    connections = txByIssuer.map(lambda t: selectConnection(t)).collect()
-    for r in connections:
-      ofile.write(str(r)+"\n")
-    ofile.close()
+    # iterate over groups of transactions finding connections
+    cxs = txByIssuer.flatMap(lambda t: selectConnection(t)).collect()
+    # collect the connections
+    connections = []
+    for c in cxs:
+        connections = connections + [(c.owner1,c.owner2,c.issuer)]
+    return connections
 
 if __name__ == "__main__":
     # $example on:init_session$
@@ -75,4 +77,7 @@ if __name__ == "__main__":
     # $example off:init_session$
     #   .config("spark.some.config.option", "some-value") \
 
-    generateConnections(spark)
+    connections = generateConnections(spark)
+    with open("connections.table","w") as ofile:
+        csvwriter = writer(ofile, delimiter='|')
+        csvwriter.writerows(connections)
