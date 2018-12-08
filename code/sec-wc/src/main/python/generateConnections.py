@@ -32,20 +32,23 @@ def selectConnection(trans_issuer_t):
             connections[t.rptOwnerCik] = set()
     return returnRDD
 
+def genRow(f):
+    return Row(issuerCik    = f[1],
+               rptOwnerCik  = f[2],
+               filingDate   = f[3],
+               isDirector   = f[4],
+               isOfficer    = f[5],
+               is10pctOwner = f[6],
+               isOther      = f[7],
+               officerTitle = f[8])
+
 def generateConnections(spark, inFile):
     sc = spark.sparkContext
 
     # owner_rels
     lines = sc.textFile(inFile)
     fields = lines.map(lambda l: l.split('|'))
-    owner_rels = fields.map(lambda f: Row(issuerCik    = f[1],
-                                          rptOwnerCik  = f[2],
-                                          filingDate   = f[3],
-                                          isDirector   = f[4],
-                                          isOfficer    = f[5],
-                                          is10pctOwner = f[6],
-                                          isOther      = f[7],
-                                          officerTitle = f[8]))
+    owner_rels = fields.filter( lambda f: f[1]).map(lambda f: genRow(f))
     owner_relsSchema = StructType([StructField('issuerCik', StringType(),False),
                                    StructField('rptOwnerCik', StringType(),False),
                                    StructField('filingDate', StringType(),False),
@@ -58,15 +61,15 @@ def generateConnections(spark, inFile):
     owner_relsTable.createOrReplaceTempView("owner_rels")
 #    owner_relsTable.rdd.saveAsTextFile("owner_rels.text")
 
-    transactions = spark.sql("SELECT issuerCik,filingDate,rptOwnerCik FROM owner_rels ORDER BY issuerCik,filingDate,rptOwnerCik " )
+    transactions = spark.sql("SELECT issuerCik,filingDate,rptOwnerCik FROM owner_rels ORDER BY issuerCik,filingDate,rptOwnerCik" )
     # group transactions by issuer, returring an dict with issueCik as key
     txByIssuer  = transactions.rdd.groupBy(lambda t: t.issuerCik)
     # iterate over groups of transactions finding connections
-    cxs = txByIssuer.flatMap(lambda t: selectConnection(t)).collect()
+    cxs = txByIssuer.flatMap(lambda t: selectConnection(t))
     # collect the connections
-    connections = []
-    for c in cxs:
-        connections = connections + [(c.owner1,c.owner2,c.issuer)]
+    connections = cxs.map(lambda c: (c.owner1,c.owner2,c.issuer)).collect()
+#    for c in cxs:
+#        connections = connections + [(c.owner1,c.owner2,c.issuer)]
     return connections
 
 if __name__ == "__main__":
