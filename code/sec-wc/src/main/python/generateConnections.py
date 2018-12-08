@@ -60,9 +60,9 @@ def generateConnections(spark, inFile):
 
     transactions = spark.sql("SELECT issuerCik,filingDate,rptOwnerCik FROM owner_rels ORDER BY issuerCik,filingDate,rptOwnerCik " )
     # group transactions by issuer, returring an dict with issueCik as key
-    txByIssuer  = sc.transactions.rdd.groupBy(lambda t: t.issuerCik)
+    txByIssuer  = transactions.rdd.groupBy(lambda t: t.issuerCik)
     # iterate over groups of transactions finding connections
-    cxs = sc.txByIssuer.flatMap(lambda t: selectConnection(t)).collect()
+    cxs = txByIssuer.flatMap(lambda t: selectConnection(t)).collect()
     # collect the connections
     connections = []
     for c in cxs:
