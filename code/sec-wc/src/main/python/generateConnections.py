@@ -76,7 +76,7 @@ if __name__ == "__main__":
     # $example on:init_session$
     spark = SparkSession \
         .builder \
-        .appName("LoadSECdata") \
+        .appName("Generate Connections") \
         .getOrCreate()
     # $example off:init_session$
     #   .config("spark.some.config.option", "some-value") \
@@ -91,5 +91,5 @@ if __name__ == "__main__":
         outFile = "connections.table"
     connections = generateConnections(spark,inFile)
     with open("connections.table","w") as ofile:
-        csvwriter = writer(ofile, delimiter='|')
+        csvwriter = writer(ofile, delimiter='|',lineterminator='\n')
         csvwriter.writerows(connections)
