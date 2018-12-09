@@ -205,7 +205,7 @@ class SECFiling:
                 elif kind == 'xmlETag':
                     xmlEndLoc = mo.start()
                     formType = values.get('type')
-                    if formType == '4':
+                    if formType == '3' or formType == '4' or formType == '5':
                         xmlObjs.append(['documents',                     # table
                                         accessionNumber,                 # accessionNumber
                                         values.get('sequence',''),       # sequence
