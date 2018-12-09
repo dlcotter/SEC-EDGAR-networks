@@ -4,8 +4,10 @@ from re import sub
 from datetime import datetime,timezone
 from itertools import chain,count
 from pyspark.sql.functions import monotonically_increasing_id 
+from pyspark.sql import functions as sqlf
 from graphframes.graphframe import GraphFrame
 
+sc.setCheckpointDir('~/my_spark_checkpoints')
 spark.sql('SET spark.sql.crossJoin.enabled=true')
 _colnames = ",".join(("c{} STRING".format(i) for i in range(0,10)))
 secdata = spark.read.csv('stocks.data',sep="|",schema=_colnames)
@@ -172,17 +174,40 @@ weight_func=None):
     return sub('&','&amp;',xml)
 
 
-v = combine_df(ents,filings).withColumn('id',monotonically_increasing_id())
-f = filings_ents
+#v = combine_df(ents,filings).withColumn('id',monotonically_increasing_id())
+v = combine_df(ents.select(ents.cik,ents.filing_date.cast('string').
+alias('e_filing_date')),filings.select(filings.accession_number,filings.filing_date.cast('string')))
+v = v.withColumn('id', sqlf.when(v.cik.isNotNull(),sqlf.concat(v.e_filing_date,v.cik)).
+otherwise(v.accession_number))
+fdates = filings.select(filings.accession_number.alias('filing_acc_number'),filings.filing_date)
+f = filings_ents.join(fdates)
 r = owner_rels
-cik_id = v.select(v.cik,v.id.alias('src')).where(v.cik.isNotNull())
-acc_id = v.select(v.accession_number,v.id.alias('dst')).where(v.accession_number.isNotNull())
-e_filings_ents = f.join(cik_id,'cik').join(acc_id,'accession_number')
-issuer_cik_id = cik_id.withColumnRenamed('cik','issuer_cik').withColumnRenamed('src','dst')
-e_owner_rels = r.join(cik_id.withColumnRenamed('cik','owner_cik'),'owner_cik').join(issuer_cik_id,'issuer_cik')
-e = combine_df(e_owner_rels,e_filings_ents).withColumnRenamed('cik','filer_cik')
+#cik_id = v.select(v.cik,v.id.alias('src')).where(v.cik.isNotNull())
+#acc_id = v.select(v.accession_number,v.id.alias('dst')).where(v.accession_number.isNotNull())
+#e_filings_ents = f.join(cik_id,'cik').join(acc_id,'accession_number')
+#issuer_cik_id = cik_id.withColumvnRenamed('cik','issuer_cik').withColumnRenamed('src','dst')
+#e_owner_rels = r.join(cik_id.withColumnRenamed('cik','owner_cik'),'owner_cik').join(issuer_cik_id,'issuer_cik')
+#e = combine_df(e_owner_rels,e_filings_ents).withColumnRenamed('cik','filer_cik')
+#swap order of cik and filing date in creating key because accession number is the issuer_cik+filing_date!
+e_owner_rels = r.withColumn('src',sqlf.concat(r.filing_date,r.owner_cik)).\
+withColumn('dst',sqlf.concat(r.filing_date,r.issuer_cik))
+e_filings_ents = f.withColumn('src',sqlf.concat(f.filing_date,f.cik)).\
+withColumn('dst',f.accession_number)
+e = combine_df(e_owner_rels,e_filings_ents)
+g = GraphFrame(v,e)
 
-g.degrees.orderBy('degree',ascending=false).show()
+#be sure to remove the order by when running on the big cluster, it might be more efficient to sort later on a single node?
+degrees = g.degrees.orderBy('degree',ascending=False)
+g = g.pageRank(tol=0.1)
+pr = g.vertices.orderBy('pagerank',ascending=False).show()
+ccs = g.connectedComponents()
+top_cc =  ccs.groupBy('component').count().orderBy('count',ascending=False).limit(5).collect()
+#get degree distr and page range distr for top 5 components
+
+#largest_component = 42949672974#found by inspecting output
+for row in top_cc:
+    ccs.where(ccs.component == row.component).show()#dump everything we need stats-wise from each of the five largest components
+
 
 ############################## old stuff below #############################
 g2 = toGEFX(nodes,edges)
