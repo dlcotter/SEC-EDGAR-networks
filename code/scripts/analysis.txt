@@ -1,0 +1,27 @@
+Analysis
+
+How many insider trades are there? (count of owner_rels)
+3,188,691
+
+What is the most common type of insider in insider trading? 
+Director - 1,594,577
+Officer  - 1,582,545
+
+What is the most common type of officer?
++--------------------+-----+
+|       officer_title|count|
++--------------------+-----+
+|                 CEO|70105|
+|Executive Vice Pr...|60777|
+|Senior Vice Presi...|51084|
+|   President and CEO|49022|
+|Chief Financial O...|48128|
+|Chief Executive O...|44465|
+|      Vice President|40085|
+|                 CFO|35047|
+|           President|26048|
+|    Chairman and CEO|20671|
++--------------------+-----+
+
+Which companies do the most insider trades?
+
