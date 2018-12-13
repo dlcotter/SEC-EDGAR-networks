@@ -2,16 +2,17 @@
 
 CS626 - Large Scale Data Science project
 
-## Build:
+This repository contains code and files in partial fulfilment of the
+requirements for CS626 by Daniel Cotter, Steve Roggenkamp, and Nima
+Seyedtalebi.
 
-```
-$ cd code
-$ mvn package
-```
+The code directory contains the code for this project.
 
-## Run
+Within code we have the scripts directory containing many of the shell,
+Python, and scala scripts we used for this project.
 
-```
-$ cd code
-$ hadoop jar sec-wc/target/sec-wc-0.0.1.jar SECWordCount input output
-```
+We also have the code/sec-wc/src/main/python subdirectory containing
+the Python code used to process the data.
+
+The rdbms directory contains artifacts from our early experimentation
+with lodaing data inte a traditional database.
