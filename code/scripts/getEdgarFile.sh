@@ -1,4 +1,10 @@
 #!/bin/bash
+#
+# getEdgarFile.sh - this script downloads everything in a quarterly
+# index file.
+
+# Steve Roggenkamp
+#
 
 for f in $(gunzip -c $1 | awk -F \| 'NR>11{print($5);}'); do
     d=$(dirname $f)

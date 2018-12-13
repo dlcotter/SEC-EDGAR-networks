@@ -12,24 +12,23 @@ from pyspark.sql.types import *
 import sys
 
 def selectConnection(trans_issuer_t):
-    issuerCik = trans_issuer_t[0]
-    transactions = trans_issuer_t[1]
-    prevOwner = ''
-    connections = {}
-    returnRDD = []
-    
+    issuerCik    = trans_issuer_t[0]  # get the issuerCIK
+    transactions = trans_issuer_t[1]  # get the list of transactions for this issuerCIK
+    connections  = {}                 # initialize the dictionary
+    returnRDD    = []                 # list of connections
+
     for t in transactions:
-        if t.rptOwnerCik in connections:
-            for otherOwner in connections[t.rptOwnerCik]:
-                if otherOwner < t.rptOwnerCik:
+        if t.rptOwnerCik in connections:                    # have we seen this CIK before?
+            for otherOwner in connections[t.rptOwnerCik]:   # yes, so generate output connections
+                if otherOwner < t.rptOwnerCik:              # put the smaller CIK in first position
                     returnRDD.append(Row(issuer=issuerCik,owner1=otherOwner,owner2=t.rptOwnerCik))
                 else:
                     returnRDD.append(Row(issuer=issuerCik,owner1=t.rptOwnerCik,owner2=otherOwner))
-            connections[t.rptOwnerCik].clear()
-        else:
-            for key in connections:
+            connections[t.rptOwnerCik].clear()              # clear the dictionary entry for this owner
+        else:                                               # no, we have not seen it
+            for key in connections:                         # add this owner to other dictionary entries
                 connections[key].add(t.rptOwnerCik)
-            connections[t.rptOwnerCik] = set()
+            connections[t.rptOwnerCik] = set()              # create an entry for this owner
     return returnRDD
 
 def genRow(f):
@@ -61,15 +60,13 @@ def generateConnections(spark, inFile):
     owner_relsTable.createOrReplaceTempView("owner_rels")
 #    owner_relsTable.rdd.saveAsTextFile("owner_rels.text")
 
-    transactions = spark.sql("SELECT issuerCik,filingDate,rptOwnerCik FROM owner_rels ORDER BY issuerCik,filingDate,rptOwnerCik" )
+    transactions = spark.sql("SELECT issuerCik,filingDate,rptOwnerCik FROM owner_rels WHERE isDirector = 1 OR isOfficer = 1 ORDER BY issuerCik,filingDate,rptOwnerCik" )
     # group transactions by issuer, returring an dict with issueCik as key
     txByIssuer  = transactions.rdd.groupBy(lambda t: t.issuerCik)
     # iterate over groups of transactions finding connections
     cxs = txByIssuer.flatMap(lambda t: selectConnection(t))
     # collect the connections
     connections = cxs.map(lambda c: (c.owner1,c.owner2,c.issuer)).collect()
-#    for c in cxs:
-#        connections = connections + [(c.owner1,c.owner2,c.issuer)]
     return connections
 
 if __name__ == "__main__":
