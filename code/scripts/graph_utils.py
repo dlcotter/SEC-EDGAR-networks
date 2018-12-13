@@ -7,8 +7,8 @@ from itertools import chain
 def combine_df(one,other):
     one_types = {colname:coltype for colname,coltype in one.dtypes}
     other_types = {colname:coltype for colname,coltype in other.dtypes}
-    one_with_other = 'one.'+'.'.join((f'withColumn("{colname}",lit(None).cast("{other_types[colname]}"))' for colname in other.columns))
-    other_with_one = 'other.'+'.'.join((f'withColumn("{colname}",lit(None).cast("{one_types[colname]}"))' for colname in one.columns))
+    one_with_other = 'one.'+'.'.join((f'withColumn("{colname}",lit(None).cast("{other_types[colname]}"))' for colname in other.columns if colname not in one.columns))
+    other_with_one = 'other.'+'.'.join((f'withColumn("{colname}",lit(None).cast("{one_types[colname]}"))' for colname in one.columns if colname not in other.columns))
     one = eval(one_with_other)
     other = eval(other_with_one)
     return one.unionByName(other)
@@ -119,4 +119,5 @@ weight_func=None):
     </graph>
     </gexf>'''
     return sub('&','&amp;',xml)
+
 
