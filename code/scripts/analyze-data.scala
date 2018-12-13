@@ -69,12 +69,13 @@ data("contacts").
 data("owner_rels").
 	filter($"is_director" > 0)
 
-data("owner_rels").
-	filter($"is_director" > 0).
-	groupBy("owner_cik").
-	count().
-	orderBy(desc("count")).
-	show(10)
+// Most numerous owners
+data("owner_rels")
+	.filter($"isDirector" > 0)
+	.groupBy("rptOwnerCik")
+	.count()
+	.orderBy(desc("count"))
+	.show(10)
 // +----------+-----+
 // | owner_cik|count|
 // +----------+-----+
@@ -89,6 +90,42 @@ data("owner_rels").
 // |0001166334|  495|
 // |0000937797|  446|
 // +----------+-----+
+
+// Look up the most frequently trading owner:
+data("contacts")
+	.filter(row => row(1) == 898860)
+	.distinct()
+	.show()
+
+scala> data("connections")
+	.groupBy("owner1")
+	.count()
+	.orderBy(desc("count"))
+	.show()
+// +-------+-----+
+// | owner1|count|
+// +-------+-----+
+// | 929408|  538|
+// |1028689|  445|
+// |1087939|  379|
+// |1087940|  353|
+// |1009139|  336|
+// | 937797|  334|
+// |1032669|  327|
+// |1351069|  326|
+// |1168019|  322|
+// |1025094|  320|
+// |1099636|  313|
+// |1351073|  305|
+// |1013947|  299|
+// |1159187|  294|
+// |1176400|  294|
+// |1024354|  289|
+// |1075522|  285|
+// |1055951|  285|
+// |1047251|  281|
+// |1179631|  278|
+// +-------+-----+
 
 // Count of owner_rels
 data("owner_rels").count()
@@ -196,6 +233,38 @@ data("contacts").
 // |1424402|2008-01-22 00:00:00|       owner|4695 MACARTHUR COURT|   null|   null|NEWPORT BEACH|   CA|92660|9499751550|
 // +-------+-------------------+------------+--------------------+-------+-------+-------------+-----+-----+----------+
 
+// I sorted the connections by greatest number of issuers per owner-owner pair to least and found that there are
+// lots of owners who have dozens of connections to other owners but with different issuers. That sounds to me
+// like pairs of insiders trading stock while employed at dozens of different companies.
+scala> data("connections")
+	.groupBy("owner1","owner2")
+	.count()
+	.orderBy(desc("count"))
+	.show()
+// +-------+-------+-----+
+// | owner1| owner2|count|
+// +-------+-------+-----+
+// |1059243|1075522|   38|
+// |1059243|1333739|   36|
+// |1075524|1333739|   35|
+// |1075522|1075524|   34|
+// |1075522|1358150|   32|
+// |1075522|1333739|   32|
+// |1141904|1333739|   31|
+// |1059243|1326138|   30|
+// |1059243|1075524|   29|
+// |1075522|1141904|   28|
+// |1075524|1141904|   28|
+// |1059243|1141904|   27|
+// |1075522|1326138|   24|
+// |1075522|1162744|   24|
+// |1326138|1333739|   23|
+// |1075524|1162744|   23|
+// |1075522|1283051|   23|
+// |1141904|1162744|   22|
+// |1075524|1283051|   22|
+// |1162744|1358150|   22|
+// +-------+-------+-----+
 
 df.dtypes
 df.show()
