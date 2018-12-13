@@ -1,3 +1,9 @@
+#
+# Program to parse the SEC filings and generate CSV files from the data
+#
+# Steve Roggenkamp
+#
+
 import collections
 import csv
 import io
@@ -5,16 +11,19 @@ import re
 import sys
 import xml.parsers.expat
 
+
 class SECDict(dict):
     def __missing__(self,key):
         return ""
-    
+
+# Convert a string to a date, using 1990-01-01 to indicate a missing value
 def toDate(str):
     if len(str) == 8:
         return str[0:4]+'-'+str[4:6]+'-'+str[6:8]
     else:
         return "1990-01-01"
 
+# Main class used for processing SEC filings
 class SECFiling:
     """An SEC Filing"""
 
@@ -26,13 +35,22 @@ class SECFiling:
     def __init__(self, accessionNumber, submissionType, docCount, reportingDate, filingDate, changeDate ):
         self.objType = SECFiling.objType
 
+    # main method entry point to parse a file, accumulating rows of data
+    # in outputrows
     def parse(fileName,outputrows):
         global parse
         accessionNumber = ''
         issuerCik       = ''
         filingDate      = ''
         missingDate     = '1990-01-01'
-        
+
+        # parse a document contained within the filing document
+        #
+        # This implements the handlers for XML SAX parsing events
+        # generated as a result of parsing an embedded XML document
+        # One qurik is that we have to pass data back through the
+        # outputrrows since the expat parser is written in C/C++
+        # and does not pass along the yield results
         def parseDocument( docContent, accessionNumber ):
  
             xmlObjs                   = []
@@ -53,6 +71,7 @@ class SECFiling:
             rptOwnerOfficerTitle      = ''
             state                     = 0
 
+            # handle an EndElement event
             def endElement( name ):
                 nonlocal accessionNumber,filingDate,issuerCik
                 nonlocal currentData,currentElement,documentType
@@ -112,6 +131,7 @@ class SECFiling:
                 elif name == 'officerTitle':
                     rptOwnerOfficerTitle      = currentData
 
+            # StartElement handler
             def startElement(name, attrs):
                 nonlocal accessionNumber,filingDate,issuerCik
                 nonlocal currentData,currentElement,documentType
@@ -153,11 +173,13 @@ class SECFiling:
                 elif name == 'officerTitle':
                     state = 30
 
+            # CharacterData event handler
             def charData( data ):
                 nonlocal currentData
                 # change new lines to
                 currentData = currentData + data
-            
+
+            # method to parse an embedded XML document
             def parseXMLDocument( xmlContent ):
                 xmlParser = xml.parsers.expat.ParserCreate()
                 xmlParser.StartElementHandler  = startElement
@@ -218,7 +240,10 @@ class SECFiling:
                     yield xmlObjs
 
                     
-        
+        # parse the SEC Header section of a filing
+        #
+        # This uses as state-based approach to keeping track of where we are
+        # in the header.
         def parseHeader(hdrContent):
             nonlocal accessionNumber,filingDate,issuerCik
             nOwnrPrint = 0
@@ -260,8 +285,9 @@ class SECFiling:
             lastkind = ""
             accessionNumber = None
             tag_regex = '|'.join('(?P<%s>%s)' % pair for pair in tags)
- #           print("tag_regex: "+tag_regex )
 
+            # loop through the document looking for values found by the
+            # regular expression generated from the symbols above
             for mo in re.finditer( tag_regex, hdrContent, re.MULTILINE|re.ASCII ):
                 kind     = mo.lastgroup
                 startLoc = mo.end()
@@ -555,7 +581,11 @@ class SECFiling:
                             values.get('state',''),
                             values.get('zip',''),
                             values.get('phone','')]]
-                    
+
+        #
+        # Now we're in the main parsing routine where we are looking
+        # for sections of the SEC filing document consisting of a
+        # SEC-HEADER and one or more DOCUMENT elements
         docTags = [
             ('headerSTag',   r'<SEC-HEADER>'),
             ('headerETag',   r'</SEC-HEADER>'),
@@ -571,8 +601,11 @@ class SECFiling:
             documentContentt = ''
             accessionNumber  = ''
             for mo in re.finditer( docTag_regex, fileContent, re.MULTILINE|re.ASCII ):
+                # Header start tag
                 if mo.lastgroup == 'headerSTag':
                     documentStartLoc = mo.start(0)
+
+                # Header end tag
                 elif mo.lastgroup == 'headerETag':
                     documentEndLoc = mo.start(0)
                     documentContent = fileContent[documentStartLoc:documentEndLoc]
@@ -581,9 +614,12 @@ class SECFiling:
                             if row[0] == 'filings':
                                 accessionNumber = row[1]
                         outputRows.extend(obj)
-#                        print("processing AN: "+accessionNumber)
+
+                # Document start tag
                 elif mo.lastgroup == 'documentSTag':
                     documentStartLoc = mo.start(0)
+
+                # Document end tag
                 elif mo.lastgroup == 'documentETag':
                     documentEndLoc = mo.start(0)
                     documentContent = fileContent[documentStartLoc:documentEndLoc]
@@ -594,10 +630,15 @@ if __name__ == "__main__":
     with io.StringIO("",newline='\n') as csvStrings:
         csvWriter = csv.writer(csvStrings, delimiter='|',lineterminator='\n',quoting=csv.QUOTE_MINIMAL )
         outputRows = []
+
+        # loop through the program arguments, parsing the files passed in
         for f in sys.argv[1:]:
             try:
                 SECFiling.parse( f, outputRows )
             except xml.parsers.expat.ExpatError as inst:
                 sys.stderr.write("XML parsing error for {0}: {1}\n".format(f,str(inst)))
+        # Write all of the data to a CSV file
+        # We precede each line with the table it goes into, making
+        # it easy to separate the rows out into separate CSV files later
         csvWriter.writerows(outputRows)
         print(csvStrings.getvalue())

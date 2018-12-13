@@ -2,6 +2,12 @@
 Load tables into Spark
 """
 
+# Script written to insure we have everything working with Spark
+# and can read our data into it.
+#
+# Steve Roggenkamp
+#
+
 from __future__ import print_function
 
 from os.path import expanduser, join, abspath

@@ -1,4 +1,11 @@
 #!/bin/bash
+#
+# get_form4.sh - an initial attempt to download all of the SEC Form 4
+#                we would need.  It proved too slow, so we replaced it
+#                with get_form4_qtr.sh so we could run them in parallel.
+#
+# Steve Roggenkamp
+#
 
 for y in 2018 2017 2016 2015 2014 2013 2012 2011 2010 \
 	      2009 2008 2007 2006 2005 2004 2003 2002 2001 2000 \
@@ -9,7 +16,7 @@ for y in 2018 2017 2016 2015 2014 2013 2012 2011 2010 \
 	if [[ -e ${filePath} ]]; then
             gunzip -c ${filePath} | \
 	        awk -F \| \
-               '    NR>11 && $3=="4"{print($5);}' | \
+                  'NR>11 && $3=="4"{print($5);}' | \
 		       while read path; do
 		           if [[ ! -e "${path}" ]]; then
 			       echo "$path"

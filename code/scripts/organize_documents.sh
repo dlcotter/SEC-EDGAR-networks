@@ -1,4 +1,11 @@
 #!/bin/bash
+#
+# organize_documents.sh - reorganize our documents so we have 3163 directories
+#                         underneath the root directory instead of over
+#                         200,000 directories
+#
+# Steve Roggenkamp
+#
 
 md5sums=documents.md5
 newdocroot=edgar/documents
@@ -11,12 +18,14 @@ if [[ -e "${md5sums}" ]]; then
     echo "" >"${md5sums}"
 fi
 
+# traverse the old diretory tree getting documents to move
 find edgar/data -name '*.txt' | \
     while read infile; do
 	echo -n "processing ${infile}: "
 	docNo=$(echo "${infile}" | \
 		    sed -e 's@.*/.*/@@' \
                         -e 's@.txt@@' )
+	# determine the new directory for the document
 	echo -n "docNo: ${docNo} "
 	newdir=$(echo "${docNo}" | \
 		 sed -e 's@-@@g' -e 's@\(.*\)@scale=0; \1 % 3163@' | bc -ql)
