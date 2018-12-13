@@ -3,6 +3,9 @@
 # rebuild the PostgreSQL database from scratch
 # change CSVDIR to point to your local directory where
 # the CSV files are located
+#
+# Steve Roggenkamp
+#
 
 CSVDIR=/home/skr/Projects/cs626p1/code
 

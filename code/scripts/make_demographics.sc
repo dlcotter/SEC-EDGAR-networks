@@ -1,9 +1,15 @@
+//
+// make_demographics.sc -- scala script to pull in Census Bureau data
+//                         to estimate races of SEC entities
+//
+// Steve Roggenkamp
+//
+
 import java.sql.{Date,Timestamp}
 import java.text.DateFormat
 import org.apache.spark._
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql._
-// import spark.implicits._
 import scala.util.Try
 
 // The complete list of tables
@@ -21,19 +27,22 @@ import scala.util.Try
 // use only these for now
 val files = List("entities","owner_rels","surnames")
 
+//  from Daniel's code to load CSV files 
 val dataframes =
         files.map(f => spark.read.
 			format("csv").
 			option("delimiter","|").
 			option("header","true").
 			option("inferSchema","true").
-			load("data/" + f + ".csv"))
-val data = (files zip dataframes).toMap
-val entities: DataFrame = data("entities")
-val owner_rels: DataFrame = data("owner_rels")
-val surnames: DataFrame = data("surnames")
+			load("data/" + f + ".table"))
 
-// create table views
+// load the tables we need
+val data = (files zip dataframes).toMap
+val entities: DataFrame = data("entities")       // entities
+val owner_rels: DataFrame = data("owner_rels")   // owner relationship
+val surnames: DataFrame = data("surnames")       // Census surname data
+
+// create table views so SQL works
 entities.createOrReplaceTempView("entities")
 surnames.createOrReplaceTempView("surnames")
 owner_rels.createOrReplaceTempView("owner_rels")

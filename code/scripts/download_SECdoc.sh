@@ -5,7 +5,7 @@
 #
 # arguments:  $1 - file containing paths of documents to download
 #
-
+# Author: Steve Roggenkamp
 
 
 if [[ -r "$1" ]]; then

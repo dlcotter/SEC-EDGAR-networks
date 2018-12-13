@@ -1,4 +1,9 @@
 #!/bin/bash
+#
+# get_indices.sh - get the master indices for a quarter
+#
+# Steve Roggenkamp
+#
 
 for y in 1997 1998 1999 \
 	 2000 2001 2002 2003 2004 2005 2006 2007 2008 2009 \
